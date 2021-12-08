@@ -99,7 +99,8 @@ class ActionsAdvancedProductSearch {
 		$context = explode(':', $parameters['context']);
 
 		$langs->loadLangs(array('advancedproductsearch@advancedproductsearch'));
-		if (in_array('propalcard', $context) || in_array('ordercard', $context) || in_array('invoicecard', $context) )
+		if (in_array('propalcard', $context) || in_array('ordercard', $context) || in_array('invoicecard', $context)
+			|| in_array('supplier_proposalcard', $context) || in_array('ordersuppliercard', $context) || in_array('invoicesuppliercard', $context))
 		{
 			/** @var CommonObject $object */
 
@@ -113,6 +114,9 @@ class ActionsAdvancedProductSearch {
 				'commande' => $user->rights->commande->creer,
 				'propal' => $user->rights->propal->creer,
 				'facture' => $user->rights->facture->creer,
+				'invoice_supplier' => $user->rights->fournisseur->facture->creer,
+				'order_supplier' => $user->rights->fournisseur->commande->creer,
+				'supplier_proposal' => $user->rights->supplier_proposal->creer
 			);
 
 			if (($user->socid > 0 || empty($TWriteRight[$object->element]))) {
@@ -125,7 +129,7 @@ class ActionsAdvancedProductSearch {
 			<script type="text/javascript">
 				$(document).ready(function(){
 					// ADD SEARCH BOX BUTTON
-					$( "#idprod" ).parent().append($("#product-search-dialog-button"));
+					$( "#idprod,#idprodfournprice" ).parent().append($("#product-search-dialog-button"));
 				});
 			</script>
 			<!-- END MODULE advanced-product-search -->

@@ -76,6 +76,13 @@ $confToJs = array(
 	'thousand' => $thousand,
 );
 
+$current_page = $_SERVER['HTTP_REFERER'];
+if(strpos($current_page, 'propal') !== false
+	|| (strpos($current_page, 'commande') !== false && strpos($current_page, 'fourn') === false)
+	|| (strpos($current_page, 'facture') !== false && strpos($current_page, 'fourn') === false)) {
+	$action = 'product-search-form';
+} else $action = 'product-search-form-fourn';
+
 ?>
 /* <script > */
 // LANGS
@@ -115,6 +122,22 @@ $( document ).ready(function() {
 			}, doneTypingProductSearchInterval);
 		}
 	});
+
+	<?php
+
+		if($action === 'product-search-form-fourn') {
+			?>
+
+				$(document).on("change", "[name^=prodfourprice]", function() {
+					let fk_product = $(this).attr("data-product");
+					$("#advanced-product-search-list-input-subprice-" + fk_product).val($(this).find(':selected').data('up'));
+					$("#advanced-product-search-list-input-subprice-" + fk_product).trigger('change');
+				});
+
+			<?php
+		}
+
+	?>
 
 	// Update prices display
 	$(document).on("change", ".on-update-calc-prices" , function(event) {
@@ -248,7 +271,7 @@ var AdvancedProductSearch = {};
 
 		$('#'+productSearchDialogBox).prepend($('<div class="inner-dialog-overlay"><div class="dialog-loading__loading"><div class="dialog-loading__spinner-wrapper"><span class="dialog-loading__spinner-text">LOADING</span><span class="dialog-loading__spinner"></span></div></div></div>'));
 
-		$('#'+productSearchDialogBox).load( "<?php print dol_buildpath('advancedproductsearch/scripts/interface.php',1)."?action=product-search-form"; ?>" + morefilters, function() {
+		$('#'+productSearchDialogBox).load( "<?php print dol_buildpath('advancedproductsearch/scripts/interface.php',1)."?action=".$action; ?>" + morefilters, function() {
 			o.dialogCountAddedProduct = 0; // init count of product added for reload action
 			o.focusAtEndSearchInput($("#search-all-form-input"));
 

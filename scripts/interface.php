@@ -77,6 +77,9 @@ if ($action === 'add-product') {
 		'commande' => $user->rights->commande->creer,
 		'propal' => $user->rights->propal->creer,
 		'facture' => $user->rights->facture->creer,
+		'invoice_supplier' => $user->rights->fournisseur->facture->creer,
+		'order_supplier' => $user->rights->fournisseur->commande->creer,
+		'supplier_proposal' => $user->rights->supplier_proposal->creer
 	);
 
 	if ($user->socid > 0 || empty($TWriteRight[$element])) {
@@ -86,6 +89,7 @@ if ($action === 'add-product') {
 		$product = AdvancedProductSearch::getProductCache($fk_product);
 
 		$object = AdvancedProductSearch::objectAutoLoad($element, $db);
+
 		if($product > 0) {
 			if($object->fetch($fk_element)) {
 				$object->fetch_thirdparty();
@@ -113,6 +117,7 @@ if ($action === 'add-product') {
 								if ($fPrice['id'] === $fournPrice) { // === to be sure 1 != 'string'
 									if (is_numeric($fPrice['id'])){ $fk_fournprice = $fPrice['id']; }
 									$pa_ht = $fPrice['price'];
+									$ref_supplier = $fPrice['ref'];
 									$fourPriceKeyExist = true;
 									break;
 								}
@@ -156,6 +161,7 @@ if ($action === 'add-product') {
 					$origin = '';
 					$origin_id = 0;
 					$pu_ht_devise = 0;
+					$no_trigger = false;
 
 
 //					var_dump(
@@ -277,6 +283,114 @@ if ($action === 'add-product') {
 								$pu_ht_devise
 							);
 						}
+						elseif($element=='invoice_supplier') {
+							/**
+							 * @var FactureFournisseur $object
+							 */
+							$ventil = 0;
+							$situation_percent = 100;
+							$fk_prev_id = '';
+							$resAdd = $object->addline(
+								$desc,
+								$pu_ht,
+								$txtva,
+								$txlocaltax1,
+								$txlocaltax2,
+								$qty,
+								$fk_product,
+								$remise_percent,
+								$date_start,
+								$date_end,
+								$ventil,
+								$info_bits,
+								$price_base_type,
+								$type,
+								$rang,
+								$no_trigger,
+								$array_options,
+								$fk_unit,
+								$origin_id,
+								$pu_ht_devise,
+								$ref_supplier,
+								$special_code,
+								$fk_parent_line,
+								$fk_remise_except
+
+							);
+
+						}
+						elseif($element == 'order_supplier') {
+							/**
+							 * @var CommandeFournisseur $object
+							 */
+							$ventil = 0;
+							$situation_percent = 100;
+							$fk_prev_id = '';
+							$resAdd = $object->addline(
+								$desc,
+								$pu_ht,
+								$qty,
+								$txtva,
+								$txlocaltax1,
+								$txlocaltax2,
+								$fk_product,
+								$fournPrice,
+								$ref_supplier,
+								$remise_percent,
+								$price_base_type,
+								$pu_ttc,
+								$type,
+								$info_bits,
+								$no_trigger,
+								$date_start,
+								$date_end,
+								$array_options,
+								$fk_unit,
+								$pu_ht_devise,
+								$origin,
+								$origin_id
+
+							);
+
+						}
+						elseif($element == 'supplier_proposal') {
+							/**
+							 * @var SupplierProposal $object
+							 */
+							$ventil = 0;
+							$situation_percent = 100;
+							$fk_prev_id = '';
+							$resAdd = $object->addline(
+								$desc,
+								$pu_ht,
+								$qty,
+								$txtva,
+								$txlocaltax1,
+								$txlocaltax2,
+								$fk_product,
+								$remise_percent,
+								$price_base_type,
+								$pu_ttc,
+								$info_bits,
+								$type,
+								$rang,
+								$special_code,
+								$fk_parent_line,
+								$fournPrice,
+								$pa_ht,
+								$label,
+								$array_options,
+								$ref_supplier,
+								$fk_unit,
+								$origin,
+								$origin_id,
+								$pu_ht_devise,
+								$date_start,
+								$date_end
+
+							);
+
+						}
 						else {
 							$jsonResponse->msg = $langs->trans('DocumentNotAvailable').': '.$element;
 						}
@@ -307,7 +421,11 @@ if ($action === 'add-product') {
 }
 // retourne le formulaire de recherche avancé de produit
 elseif ($action === 'product-search-form') {
-	print AdvancedProductSearch::advancedProductSearchForm();
+	print AdvancedProductSearch::advancedProductSearchForm('');
+}
+// retourne le formulaire de recherche avancé de produit
+elseif ($action === 'product-search-form-fourn') {
+	print AdvancedProductSearch::advancedProductSearchForm('', 'fournisseur');
 }
 
 

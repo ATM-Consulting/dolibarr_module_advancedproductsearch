@@ -64,3 +64,6 @@ SearchLabel = Libellé recherché
 NotEnoughRights = Cette action ne vous est pas authorisée
 ErrorMissingModuleDiscountRule = Erreur : le module règle de remise est installé mais semble supprimé
 FinalDiscountPrice = Prix final
+
+PredefinedFournPricesForFill=Prix d'achat prédéfinis
+PredefinedFournPricesForFillHelp=Sélectionnez un tarif dans la liste pour remplir automatiquement la colonne "Prix"
