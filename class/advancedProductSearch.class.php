@@ -476,7 +476,7 @@ class AdvancedProductSearch extends CommonObject
 						$finalSubprice = $subprice - $subprice*$reduction/100;
 
 						// COMPTATIBILITE MODULE DISCOUNT RULE : RECHERCHE DE REGLE DE TARIFICATION
-						if (!empty($conf->discountrules->enabled)){
+						if (!empty($conf->discountrules->enabled) && $mode === 'client'){
 							if(!class_exists('DiscountSearch')){ dol_include_once('/discountrules/class/discountSearch.class.php'); }
 							if(class_exists('DiscountSearch')) { // Il est possible que le module soit supprimé mais pas désinstallé
 								$discountSearch = new DiscountSearch($db);

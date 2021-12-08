@@ -421,11 +421,13 @@ if ($action === 'add-product') {
 }
 // retourne le formulaire de recherche avancé de produit
 elseif ($action === 'product-search-form') {
-	print AdvancedProductSearch::advancedProductSearchForm('');
-}
-// retourne le formulaire de recherche avancé de produit
-elseif ($action === 'product-search-form-fourn') {
-	print AdvancedProductSearch::advancedProductSearchForm('', 'fournisseur');
+
+	$element = GETPOST("element", 'aZ09');
+	$mode = 'client';
+	if(in_array($element, array('supplier_proposal', 'commande_fournisseur', 'facture_fournisseur'))) {
+		$mode = 'fournisseur';
+	}
+	print AdvancedProductSearch::advancedProductSearchForm('', $mode);
 }
 
 
