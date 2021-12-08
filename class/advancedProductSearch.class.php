@@ -6,6 +6,14 @@
 class AdvancedProductSearch extends CommonObject
 {
 
+	/**
+	 * @var string[]
+	 */
+	public $supplierElements =  array(
+		'supplier_proposal',
+		'order_supplier',
+		'invoice_supplier'
+	);
 
 
 	/**
@@ -78,10 +86,11 @@ class AdvancedProductSearch extends CommonObject
 
 	/**
 	 * return an ajax ready search table for product
-	 *	@param	string			$pageUrl				Page URL (in most cases provided with $_SERVER["PHP_SELF"])
+	 * @param string $pageUrl Page URL (in most cases provided with $_SERVER["PHP_SELF"])
+	 * @param bool $isSupplier
 	 * @return string
 	 */
-	public static function advancedProductSearchForm($pageUrl = '', $mode='client'){
+	public static function advancedProductSearchForm($pageUrl = '', $isSupplier = false) {
 		global $langs, $conf, $db, $action;
 
 		$output = '';
@@ -417,7 +426,7 @@ class AdvancedProductSearch extends CommonObject
 
 		if ($conf->fournisseur->enabled) {
 			$colnumber++;
-			$output .= '	<th class="advanced-product-search-col --buy-price" >' . ($mode === 'fournisseur' ? $langs->trans('PredefinedFournPricesForFill').img_help(1, $langs->trans('PredefinedFournPricesForFillHelp')) : $langs->trans('BuyPrice')) . '</th>';
+			$output .= '	<th class="advanced-product-search-col --buy-price" >' . ($isSupplier ? $langs->trans('PredefinedFournPricesForFill').img_help(1, $langs->trans('PredefinedFournPricesForFillHelp')) : $langs->trans('BuyPrice')) . '</th>';
 		}
 		$output.= '	<th class="advanced-product-search-col --subprice" >'.$langs->trans('Price').'</th>';
 		$output.= '	<th class="advanced-product-search-col --discount" >'.$langs->trans('Discount').'</th>';
@@ -462,13 +471,13 @@ class AdvancedProductSearch extends CommonObject
 
 						// Réduction par défaut du client
 						$reduction = doubleval($object->thirdparty->remise_percent);
-						if($mode === 'fournisseur') {
+						if($isSupplier) {
 							$reduction = doubleval($object->thirdparty->remise_supplier_percent);
 						}
 
 						// Prix unitaire du produit avec prise en compte des niveau de prix et du client
 						$subprice = self::getProductSellPrice($product->id, $fk_company);
-						if($mode === 'fournisseur') {
+						if($isSupplier) {
 							$subprice = 0;
 						}
 
@@ -476,7 +485,7 @@ class AdvancedProductSearch extends CommonObject
 						$finalSubprice = $subprice - $subprice*$reduction/100;
 
 						// COMPTATIBILITE MODULE DISCOUNT RULE : RECHERCHE DE REGLE DE TARIFICATION
-						if (!empty($conf->discountrules->enabled) && $mode === 'client'){
+						if (!empty($conf->discountrules->enabled) && !$isSupplier){
 							if(!class_exists('DiscountSearch')){ dol_include_once('/discountrules/class/discountSearch.class.php'); }
 							if(class_exists('DiscountSearch')) { // Il est possible que le module soit supprimé mais pas désinstallé
 								$discountSearch = new DiscountSearch($db);
@@ -510,7 +519,7 @@ class AdvancedProductSearch extends CommonObject
 
 						if ($conf->fournisseur->enabled) {
 							$output .= '<td class="advanced-product-search-col --buy-price" >';
-							$TFournPriceList = self::getFournPriceList($product->id, $mode === 'fournisseur' ? $object->socid : 0);
+							$TFournPriceList = self::getFournPriceList($product->id, $isSupplier ? $object->socid : 0);
 							if (!empty($TFournPriceList)) {
 //						$output.= '<div class="default-visible" >'.price($product->pmp).'</div>';
 //						$output.= '<div class="default-hidden" >';
@@ -528,7 +537,7 @@ class AdvancedProductSearch extends CommonObject
 									}
 								}
 
-								if($mode === 'fournisseur') { // Seuls les prix fournisseurs nous intéressent dans le cadre d'un document fournisseur (pas de PMP ou autre dans ce cas)
+								if($isSupplier) { // Seuls les prix fournisseurs nous intéressent dans le cadre d'un document fournisseur (pas de PMP ou autre dans ce cas)
 									unset($selectArray['pmpprice']);
 									unset($selectArray['costprice']);
 									if(!empty($selectArray)) {
@@ -550,7 +559,7 @@ class AdvancedProductSearch extends CommonObject
 								$translate = 0;
 								$maxlen = 0;
 								$disabled = 0;
-								if($mode === 'fournisseur') $sort = 'ASC';
+								if($isSupplier) $sort = 'ASC';
 								$morecss = 'search-list-select';
 								$addjscombo = 0;
 								if(!empty($selectArray)) {
@@ -958,7 +967,7 @@ class AdvancedProductSearch extends CommonObject
 		return preg_replace("/($needle)/iu", sprintf('<span style="background-color: %s; color:%s;">$1</span>', $backgroundColor, $color), $haystack);
 	}
 
-	function highlightWordsOfSearchQuery( $content, $searchQuery) {
+	public function highlightWordsOfSearchQuery( $content, $searchQuery) {
 
 		$words = explode(' ', $searchQuery);
 		$words = array_unique($words);

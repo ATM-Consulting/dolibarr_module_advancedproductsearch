@@ -46,6 +46,8 @@ if (! $res && file_exists("../../main.inc.php")) $res=@include("../../main.inc.p
 if (! $res && file_exists("../../../main.inc.php")) $res=@include("../../../main.inc.php");
 if (! $res) die("Include of main fails");
 
+require_once __DIR__ . '/../class/advancedProductSearch.class.php';
+
 // Define js type
 header('Content-Type: application/javascript');
 // Important: Following code is to cache this file to avoid page request by browser at each Dolibarr page access.
@@ -69,13 +71,15 @@ if ($langs->transnoentitiesnoconv("SeparatorThousand") != "SeparatorThousand") $
 if ($thousand == 'None') $thousand = '';
 elseif ($thousand == 'Space') $thousand = ' ';
 
+$AdvancedProductSearch = new AdvancedProductSearch($db);
+
 $confToJs = array(
 	'MAIN_MAX_DECIMALS_TOT' => $conf->global->MAIN_MAX_DECIMALS_TOT,
 	'MAIN_MAX_DECIMALS_UNIT' => $conf->global->MAIN_MAX_DECIMALS_UNIT,
 	'dec' => $dec,
 	'thousand' => $thousand,
 	'interface_url' => dol_buildpath('advancedproductsearch/scripts/interface.php',1),
-	'supplierElements' => array('supplier_proposal', 'commande_fournisseur', 'facture_fournisseur')
+	'supplierElements' => $AdvancedProductSearch->supplierElements
 );
 
 ?>
@@ -208,7 +212,7 @@ $( document ).ready(function() {
 	var typingQtySearchDiscountTimer;                //timer identifier
 	var doneTypingQtySearchDiscountInterval = 200;  //time in ms (0.2 seconds)
 	$(document).on("change", ".advanced-product-search-list-input-qty" , function(event) {
-		if(DiscountRule != undefined){ // il faut bien vérifier que discountrule est présent
+		if(DiscountRule != undefined && !AdvancedProductSearch.isSupplierDocument()){ // il faut bien vérifier que discountrule est présent
 			var fk_product = $(this).attr("data-product");
 			clearTimeout(typingQtySearchDiscountTimer);
 			typingQtySearchDiscountTimer = setTimeout(function(){
@@ -452,7 +456,7 @@ var AdvancedProductSearch = {};
 	 * @param fk_product
 	 */
 	o.addProductToCurentDocument = function (fk_product){
-		var urlInterface = "<?php print dol_buildpath('advancedproductsearch/scripts/interface.php', 1); ?>";
+		var urlInterface = o.config.interface_url;
 
 		// disable action button during add
 		o.disableAddProductFields(fk_product, true);
