@@ -125,7 +125,7 @@ $( document ).ready(function() {
 
 	<?php
 
-		if($action === 'product-search-form-fourn') {
+		if($action === 'product-search-form-fourn') { // Code JS pour remplissage auto du champ de la colonne "prix" lors de la sélection d'un prix fournisseur dans la liste de ceux disponibles
 			?>
 
 				$(document).on("change", "[name^=prodfourprice]", function() {

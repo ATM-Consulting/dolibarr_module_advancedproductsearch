@@ -528,16 +528,17 @@ class AdvancedProductSearch extends CommonObject
 									}
 								}
 
-								if($mode === 'fournisseur') { // Seuls les prix fournisseurs nous intéressent dans le cadre d'un document fournisseur
+								if($mode === 'fournisseur') { // Seuls les prix fournisseurs nous intéressent dans le cadre d'un document fournisseur (pas de PMP ou autre dans ce cas)
 									unset($selectArray['pmpprice']);
 									unset($selectArray['costprice']);
 									if(!empty($selectArray)) {
 										if(count($selectArray) == 1) {
 											$idSelected = key($selectArray);
 											$subprice = $selectArray[$idSelected]['data-up'];
-											// Recalcul fu subprice final
+											// Recalcul du subprice final
 											$finalSubprice = $subprice - $subprice*$reduction/100;
 										}
+										// On insère une valeur vide, car si plusieurs prix fourn, on laisse le choix à l'utilisateur de sélectionner celui qu'il souhaite
 										$selectArray[0] = array('data-up' => 0);
 									}
 								}
