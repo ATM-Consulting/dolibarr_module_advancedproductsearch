@@ -22,11 +22,11 @@
  *
  * Put detailed description here.
  */
-
+require_once __DIR__ . '/../backport/v19/core/class/commonhookactions.class.php';
 /**
  * Class ActionsAdvancedProductSearch
  */
-class ActionsAdvancedProductSearch {
+class ActionsAdvancedProductSearch extends \advancedproductsearch\RetroCompatCommonHookActions {
     /**
      * @var DoliDB Database handler.
      */
@@ -71,15 +71,14 @@ class ActionsAdvancedProductSearch {
 	public static function checkUserUpdateObjectRight($user, $object, $rightToTest = 'creer'){
 		$right = false;
 		if($object->element == 'propal'){
-			$right = $user->rights->propal->{$rightToTest};
+			$right = $user->hasRight('propal', $rightToTest);
 		}
 		elseif($object->element == 'commande'){
-			$right = $user->rights->commande->{$rightToTest};
+			$right = $user->hasRight('commande', $rightToTest);
 		}
 		elseif($object->element == 'facture'){
-			$right = $user->rights->facture->{$rightToTest};
+			$right = $user->hasRight('facture', $rightToTest);
 		}
-
 		return $right;
 	}
 
@@ -111,12 +110,12 @@ class ActionsAdvancedProductSearch {
 
 
 			$TWriteRight = array(
-				'commande' => $user->rights->commande->creer,
-				'propal' => $user->rights->propal->creer,
-				'facture' => $user->rights->facture->creer,
-				'invoice_supplier' => $user->rights->fournisseur->facture->creer,
-				'order_supplier' => $user->rights->fournisseur->commande->creer,
-				'supplier_proposal' => $user->rights->supplier_proposal->creer
+				'commande' => $user->hasRight('commande', 'creer'),
+				'propal' => $user->hasRight('propal', 'creer'),
+				'facture' => $user->hasRight('facture', 'creer'),
+				'invoice_supplier' => $user->hasRight('fournisseur', 'facture', 'creer'),
+				'order_supplier' => $user->hasRight('fournisseur', 'commande' , 'creer'),
+				'supplier_proposal' => $user->hasRight('supplier_proposal', 'creer')
 			);
 
 			if (($user->socid > 0 || empty($TWriteRight[$object->element]))) {
@@ -143,8 +142,8 @@ class ActionsAdvancedProductSearch {
 			$AdvancedProductSearch = new AdvancedProductSearch();
 
 			$confToJs = array(
-				'MAIN_MAX_DECIMALS_TOT' => $conf->global->MAIN_MAX_DECIMALS_TOT,
-				'MAIN_MAX_DECIMALS_UNIT' => $conf->global->MAIN_MAX_DECIMALS_UNIT,
+				'MAIN_MAX_DECIMALS_TOT' => getDolGlobalString('MAIN_MAX_DECIMALS_TOT') ,
+				'MAIN_MAX_DECIMALS_UNIT' => getDolGlobalString('MAIN_MAX_DECIMALS_UNIT') ,
 				'interface_url' => dol_buildpath('advancedproductsearch/scripts/interface.php',1),
 				'js_url' => dol_buildpath('advancedproductsearch/js/advancedproductsearch.js',1),
 				'supplierElements' => $AdvancedProductSearch->supplierElements

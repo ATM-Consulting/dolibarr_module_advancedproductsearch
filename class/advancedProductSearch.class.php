@@ -199,7 +199,7 @@ class AdvancedProductSearch
 		$fieldstosearchallText =array('Ref', 'Label', 'Description', 'Note');
 
 		// multilang
-		if (!empty($conf->global->MAIN_MULTILANGS)){
+		if (!empty(getDolGlobalString('MAIN_MULTILANGS'))){
 			$fieldstosearchall+= array('pl.label','pl.description','pl.note');
 		}
 
@@ -216,7 +216,7 @@ class AdvancedProductSearch
 
 		// SELECT PART
 		$sqlSelect = ' DISTINCT p.rowid, p.ref, p.label ';
-		if (!empty($conf->global->PRODUCT_USE_UNITS))   $sqlSelect .= ' ,cu.label as cu_label';
+		if (!empty(getDolGlobalString('PRODUCT_USE_UNITS')))   $sqlSelect .= ' ,cu.label as cu_label';
 
 		// SELECT COUNT PART
 		$sqlSelectCount = ' COUNT(DISTINCT p.rowid) as nb_results ';
@@ -225,8 +225,8 @@ class AdvancedProductSearch
 		if (!empty($searchCategoryProductList) || !empty($catid)) $sql .= ' LEFT JOIN '.MAIN_DB_PREFIX."categorie_product as cp ON (p.rowid = cp.fk_product) "; // We'll need this table joined to the select in order to filter by categ
 		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_fournisseur_price as pfp ON (pfp.fk_product = p.rowid) ";
 		// multilang
-		if (!empty($conf->global->MAIN_MULTILANGS)) $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_lang as pl ON (pl.fk_product = p.rowid AND pl.lang = '".$langs->getDefaultLang()."' )";
-		if (!empty($conf->global->PRODUCT_USE_UNITS))   $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."c_units cu ON (cu.rowid = p.fk_unit)";
+		if (!empty(getDolGlobalString('MAIN_MULTILANGS'))) $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_lang as pl ON (pl.fk_product = p.rowid AND pl.lang = '".$langs->getDefaultLang()."' )";
+		if (!empty( PRODUCT_USE_UNITS))   $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."c_units cu ON (cu.rowid = p.fk_unit)";
 
 		$sql .= ' WHERE p.entity IN ('.getEntity('product').')';
 		if (isset($search_tosell) && dol_strlen($search_tosell) > 0 && $search_tosell != -1) $sql .= " AND p.tosell = ".((int) $search_tosell);
@@ -408,7 +408,7 @@ class AdvancedProductSearch
 		$output.= '	<th class="advanced-product-search-col --finalsubprice" ></th>';
 		$output.= '	<th class="advanced-product-search-col --qty" ></th>';
 
-		if (!empty($conf->global->PRODUCT_USE_UNITS)) {
+		if (!empty( getDolGlobalString('PRODUCT_USE_UNITS'))) {
 			$output.= '<th class="advanced-product-search-col --unit" >';
 			$output.= '</th>';
 		}
@@ -450,7 +450,7 @@ class AdvancedProductSearch
 		$output.= '	<th class="advanced-product-search-col --finalsubprice" >'.$langs->trans('FinalDiscountSubPrice').'</th>';
 		$output.= '	<th class="advanced-product-search-col --qty" >'.$langs->trans('Qty').'</th>';
 
-		if (!empty($conf->global->PRODUCT_USE_UNITS)) {
+		if (!empty(getDolGlobalString('PRODUCT_USE_UNITS'))) {
 			$colnumber++;
 			$output.= '<th class="advanced-product-search-col --unit" >';
 			$output.= $langs->trans('Unit');
@@ -559,7 +559,7 @@ class AdvancedProductSearch
 									unset($selectArray['pmpprice']);
 									unset($selectArray['costprice']);
 									if(!empty($selectArray)) {
-										if(count($selectArray) == 1 && ($object->element !== 'supplier_proposal' || $conf->global->ADVANCED_PRODUCT_SEARCH_PRESELECT_IF_ONE_FOURN_PRICE_ON_SUPPLIER_PROPOSAL)) {
+										if(count($selectArray) == 1 && ($object->element !== 'supplier_proposal' ||  getDolGlobalString('ADVANCED_PRODUCT_SEARCH_PRESELECT_IF_ONE_FOURN_PRICE_ON_SUPPLIER_PROPOSAL'))) {
 											$idSelected = key($selectArray);
 											$subprice = $selectArray[$idSelected]['data-up'];
 											// Recalcul du subprice final
@@ -606,7 +606,7 @@ class AdvancedProductSearch
 
 						// FINAL SUBPRICE AFTER REDUCTION
 						$output.= '<td class="advanced-product-search-col --finalsubprice right" >';
-						$output.= '<span id="discount-prod-list-final-subprice-'.$product->id.'"  class="final-subpriceprice" >'.price(round($finalSubprice, $conf->global->MAIN_MAX_DECIMALS_UNIT)).'</span> '.$langs->trans("HT");
+						$output.= '<span id="discount-prod-list-final-subprice-'.$product->id.'"  class="final-subpriceprice" >'.price(round($finalSubprice, getDolGlobalString('MAIN_MAX_DECIMALS_UNIT'))).'</span> '.$langs->trans("HT");
 						$output.= '</td>';
 
 						// QTY
@@ -629,7 +629,7 @@ class AdvancedProductSearch
 						$output.= '</td>';
 
 						// UNITE
-						if (!empty($conf->global->PRODUCT_USE_UNITS)) {
+						if (!empty(getDolGlobalString('PRODUCT_USE_UNITS'))) {
 							$output.= '<td class="advanced-product-search-col --unit" >';
 							$output.= $product->getLabelOfUnit();
 							$output.= '</td>';
@@ -637,7 +637,7 @@ class AdvancedProductSearch
 
 						$output.= '<td class="advanced-product-search-col --finalprice right" >';
 						$finalPrice = $finalSubprice*$qty;
-						$output.= '<span id="discount-prod-list-final-price-'.$product->id.'"  class="final-price" >'.price(round($finalPrice, $conf->global->MAIN_MAX_DECIMALS_TOT)).'</span> '.$langs->trans("HT");
+						$output.= '<span id="discount-prod-list-final-price-'.$product->id.'"  class="final-price" >'.price(round($finalPrice, getDolGlobalString('MAIN_MAX_DECIMALS_TOT') )).'</span> '.$langs->trans("HT");
 						$output.= '</td>';
 
 						$output.= '<td class="advanced-product-search-col --action" >';
@@ -993,7 +993,7 @@ class AdvancedProductSearch
 				$baseSubprice = $product->price;
 			}
 
-			return round($baseSubprice, $conf->global->MAIN_MAX_DECIMALS_UNIT);
+			return round($baseSubprice, getDolGlobalString('MAIN_MAX_DECIMALS_UNIT'));
 		}
 
 		return false;

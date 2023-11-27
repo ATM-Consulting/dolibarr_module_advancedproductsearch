@@ -75,12 +75,12 @@ if ($action === 'add-product') {
 
 
 	$TWriteRight = array(
-		'commande' => $user->rights->commande->creer,
-		'propal' => $user->rights->propal->creer,
-		'facture' => $user->rights->facture->creer,
-		'invoice_supplier' => $user->rights->fournisseur->facture->creer,
-		'order_supplier' => $user->rights->fournisseur->commande->creer,
-		'supplier_proposal' => $user->rights->supplier_proposal->creer
+		'commande' => $user->hasRight('commande', 'creer'),
+		'propal' => $$user->hasRight('propal', 'creer'),
+		'facture' => $user->hasRight('facture', 'creer'),
+		'invoice_supplier' => $user->hasRight('fournisseur', 'creer'),
+		'order_supplier' => $user->hasRight('fournisseur', 'creer'),
+		'supplier_proposal' => $user->hasRight('supplier_proposal', 'creer'),
 	);
 
 	if ($user->socid > 0 || empty($TWriteRight[$element])) {
