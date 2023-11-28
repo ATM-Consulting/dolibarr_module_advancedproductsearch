@@ -55,6 +55,8 @@ if (empty($conf->advancedproductsearch->enabled)) accessforbidden('Module not en
 // AJOUT DE LIGNE DANS LES DOCUMENTS
 if ($action === 'add-product') {
 
+	global $conf;
+
 	$jsonResponse = new stdClass();
 	$jsonResponse->result = false;
 	$jsonResponse->msg = '';
@@ -76,7 +78,7 @@ if ($action === 'add-product') {
 
 	$TWriteRight = array(
 		'commande' => $user->hasRight('commande', 'creer'),
-		'propal' => $$user->hasRight('propal', 'creer'),
+		'propal' => $user->hasRight('propal', 'creer'),
 		'facture' => $user->hasRight('facture', 'creer'),
 		'invoice_supplier' => $user->hasRight('fournisseur', 'creer'),
 		'order_supplier' => $user->hasRight('fournisseur', 'creer'),
@@ -106,7 +108,7 @@ if ($action === 'add-product') {
 					$fk_fournprice = null;
 					$pa_ht = $product->pmp;
 
-					if ($conf->fournisseur->enabled) {
+					if (property_exists($conf->fournisseur, 'enabled') && $conf->fournisseur->enabled) {
 						$TFournPriceList = AdvancedProductSearch::getFournPriceList($product->id);
 						if (!empty($TFournPriceList) && !empty($fournPrice)) {
 							if (is_numeric($fournPrice)) { $fournPrice = intval($fournPrice); }
