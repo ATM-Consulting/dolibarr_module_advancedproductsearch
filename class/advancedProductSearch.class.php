@@ -260,13 +260,7 @@ class AdvancedProductSearch
 	public function advancedProductSearchForm($isSupplier = false) {
 		global $langs, $conf, $db, $action;
 
-		$newToken = function_exists('newToken') ? newToken() : $_SESSION['newtoken'];
-
 		$output = '';
-
-		if(empty($pageUrl)){
-			$pageUrl = $_SERVER["PHP_SELF"];
-		}
 
 		// Load translation files required by the page
 		$langs->loadLangs(array('products', 'stocks', 'suppliers', 'companies', 'stocks', 'margins'));
@@ -309,7 +303,7 @@ class AdvancedProductSearch
 
 		// multilang
 		if (!empty(getDolGlobalString('MAIN_MULTILANGS'))){
-			$fieldstosearchall+= array('pl.label','pl.description','pl.note');
+			$this->fieldsToSearchAll+= array('pl.label','pl.description','pl.note');
 		}
 
 		if (!empty($conf->barcode->enabled)) {
@@ -324,8 +318,8 @@ class AdvancedProductSearch
 		}
 
 		// SELECT PART
-		$sqlSelect = ' DISTINCT p.rowid, p.ref, p.label ';
-		if (!empty(getDolGlobalString('PRODUCT_USE_UNITS')))   $sqlSelect .= ' ,cu.label as cu_label';
+		$this->searchSqlSelect = ' DISTINCT p.rowid, p.ref, p.label ';
+		if (!empty(getDolGlobalString('PRODUCT_USE_UNITS')))   $this->searchSqlSelect .= ' ,cu.label as cu_label';
 
 		// SELECT COUNT PART
 		$this->searchSqlSelectCount = ' COUNT(DISTINCT p.rowid) as nb_results ';
@@ -334,8 +328,8 @@ class AdvancedProductSearch
 		if (!empty($this->search['search_category_product_list']) || !empty($this->search['catid'])) $this->searchSql .= ' LEFT JOIN '.MAIN_DB_PREFIX."categorie_product as cp ON (p.rowid = cp.fk_product) "; // We'll need this table joined to the select in order to filter by categ
 		$this->searchSql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_fournisseur_price as pfp ON (pfp.fk_product = p.rowid) ";
 		// multilang
-		if (!empty(getDolGlobalString('MAIN_MULTILANGS'))) $this->searchSql.= " LEFT JOIN ".MAIN_DB_PREFIX."product_lang as pl ON (pl.fk_product = p.rowid AND pl.lang = '".$langs->getDefaultLang()."' )";
-		if (!empty( getDolGlobalString('PRODUCT_USE_UNITS')))  $this->searchSql .= " LEFT JOIN ".MAIN_DB_PREFIX."c_units cu ON (cu.rowid = p.fk_unit)";
+		if (!empty(getDolGlobalString('MAIN_MULTILANGS'))) $this->searchSql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_lang as pl ON (pl.fk_product = p.rowid AND pl.lang = '".$langs->getDefaultLang()."' )";
+		if (!empty(getDolGlobalString('PRODUCT_USE_UNITS')))   $this->searchSql .= " LEFT JOIN ".MAIN_DB_PREFIX."c_units cu ON (cu.rowid = p.fk_unit)";
 
 		$this->searchSql .= ' WHERE p.entity IN ('.getEntity('product').')';
 		if (isset($this->search['search_tosell']) && dol_strlen($this->search['search_tosell']) > 0 && $this->search['search_tosell'] != -1) $this->searchSql .= " AND p.tosell = ".((int) $this->search['search_tosell']);
@@ -412,7 +406,7 @@ class AdvancedProductSearch
 				$obj = $db->fetch_object($querySearchRes);
 				$globalCountResult = $obj->nb_results;
 
-				$querySearchRes = $db->query('SELECT ' . $this->searchSqlSelectCount. ' ' . $this->searchSql . $db->plimit($this->search['limit'] + 1, $this->search['offset']));
+				$querySearchRes = $db->query('SELECT ' . $this->searchSqlSelect . ' ' . $this->searchSql . $db->plimit($this->search['limit'] + 1, $this->search['offset']));
 				if ($querySearchRes) {
 					$curentCountResult = $db->num_rows($querySearchRes);
 				}
@@ -522,7 +516,7 @@ class AdvancedProductSearch
 		$output.= '	<th class="advanced-product-search-col --finalsubprice" ></th>';
 		$output.= '	<th class="advanced-product-search-col --qty" ></th>';
 
-		if (!empty( getDolGlobalString('PRODUCT_USE_UNITS'))) {
+		if (!empty(getDolGlobalString('PRODUCT_USE_UNITS'))) {
 			$output.= '<th class="advanced-product-search-col --unit" >';
 			$output.= '</th>';
 		}
@@ -564,7 +558,7 @@ class AdvancedProductSearch
 		$output.= '	<th class="advanced-product-search-col --qty" >'.$langs->trans('Qty').'</th>';
 
 		if (!empty(getDolGlobalString('PRODUCT_USE_UNITS'))) {
-			$colnumber++;
+			$colNumber++;
 			$output.= '<th class="advanced-product-search-col --unit" >';
 			$output.= $langs->trans('Unit');
 			$output.= '</th>';
@@ -584,21 +578,19 @@ class AdvancedProductSearch
 		$output.= '</thead>';
 		$output.= '<tbody>';
 
-		$this->searchSqlList = 'SELECT '.$this->searchSqlSelectCount.' '
+		$this->searchSqlList = 'SELECT '.$this->searchSqlSelect.' '
 			.$this->searchSql.$db->order($this->search['sortfield'], $this->search['sortorder'])
 			.$db->plimit($this->search['limit'] + 1, $this->search['offset']);
 
 		if($this->displayResults) {
 
 			$querySearchRes = $db->query($this->searchSqlList);
-			$resProd = '';
+
 			if ($querySearchRes) {
 				if ($curentCountResult > 0) {
 					while ($obj = $db->fetch_object($querySearchRes)) {
 						$product = new Product($db);
-						if(!empty($obj->rowid)){
-							$resProd = $product->fetch($obj->rowid);
-						}
+						$resProd = $product->fetch($obj->rowid);
 						if ($resProd > 0) {
 							$product->load_stock();
 
@@ -650,7 +642,7 @@ class AdvancedProductSearch
 								$output .= '<td class="advanced-product-search-col --stock-theorique" >' . $product->stock_theorique . '</td>';
 							}
 
-							if ($conf->fournisseur->enabled) {
+							if (property_exists($conf->fournisseur, 'enabled') && $conf->fournisseur->enabled) {
 								$output .= '<td class="advanced-product-search-col --buy-price" >';
 								$TFournPriceList = self::getFournPriceList($product->id, $isSupplier ? $object->socid : 0);
 								if (!empty($TFournPriceList)) {
@@ -669,9 +661,9 @@ class AdvancedProductSearch
 										if (!empty($conf->margin->enabled)) {
 											if (getDolGlobalInt('MARGIN_TYPE') == 1 && is_numeric($TpriceInfos['id'])) {
 												$idSelected = $TpriceInfos['id'];
-											} elseif (getDolGlobalString('MARGIN_TYPE')  === 'pmp') {
+											} elseif (getDolGlobalString('MARGIN_TYPE') === 'pmp') {
 												$idSelected = 'pmpprice';
-											} elseif (getDolGlobalString('MARGIN_TYPE')  === 'costprice') {
+											} elseif (getDolGlobalString('MARGIN_TYPE') === 'costprice') {
 												$idSelected = 'costprice';
 											}
 										} else {
@@ -732,7 +724,7 @@ class AdvancedProductSearch
 
 							// FINAL SUBPRICE AFTER REDUCTION
 							$output .= '<td class="advanced-product-search-col --finalsubprice right" >';
-							$output .= '<span id="discount-prod-list-final-subprice-' . $product->id . '"  class="final-subpriceprice" >' . price(round($finalSubprice, getDolGlobalString('MAIN_MAX_DECIMALS_UNIT') )) . '</span> ' . $langs->trans("HT");
+							$output .= '<span id="discount-prod-list-final-subprice-' . $product->id . '"  class="final-subpriceprice" >' . price(round($finalSubprice, getDolGlobalString('MAIN_MAX_DECIMALS_UNIT'))) . '</span> ' . $langs->trans("HT");
 							$output .= '</td>';
 
 							// QTY
@@ -754,16 +746,16 @@ class AdvancedProductSearch
 							$output .= '<input id="advanced-product-search-list-input-qty-' . $product->id . '"  data-product="' . $product->id . '"  class="advanced-product-search-list-input-qty center on-update-calc-prices" type="number" step="any" min="' . $qtyMin . '" maxlength="8" size="3" value="' . $qty . '" placeholder="x" name="prodqty[' . $product->id . ']" />';
 							$output .= '</td>';
 
-						// UNITE
-						if (!empty(getDolGlobalString('PRODUCT_USE_UNITS'))) {
-							$output.= '<td class="advanced-product-search-col --unit" >';
-							$output.= $product->getLabelOfUnit();
-							$output.= '</td>';
-						}
+							// UNITE
+							if (!empty(getDolGlobalString('PRODUCT_USE_UNITS'))) {
+								$output .= '<td class="advanced-product-search-col --unit" >';
+								$output .= $product->getLabelOfUnit();
+								$output .= '</td>';
+							}
 
 							$output .= '<td class="advanced-product-search-col --finalprice right" >';
 							$finalPrice = $finalSubprice * $qty;
-							$output .= '<span id="discount-prod-list-final-price-' . $product->id . '"  class="final-price" >' . price(round($finalPrice, getDolGlobalString('MAIN_MAX_DECIMALS_TOT'))) . '</span> ' . $langs->trans("HT");
+							$output .= '<span id="discount-prod-list-final-price-' . $product->id . '"  class="final-price" >' . price(round($finalPrice,  getDolGlobalString('MAIN_MAX_DECIMALS_TOT'))) . '</span> ' . $langs->trans("HT");
 							$output .= '</td>';
 
 							$output .= '<td class="advanced-product-search-col --action" >';
@@ -865,7 +857,7 @@ class AdvancedProductSearch
 	 */
 	public static function objectAutoLoad($objectType, &$db)
 	{
-		global $conf, $langs;
+		global $conf;
 
 		$ret = -1;
 		$regs = array();
