@@ -123,7 +123,7 @@ class ActionsAdvancedProductSearch extends \advancedproductsearch\RetroCompatCom
 			}
 			// ADD DISCOUNT RULES SEARCH ON DOCUMENT ADD LINE FORM
 			print '<!-- MODULE advanced-product-search -->'."\r\n";
-			print '<button type="button" id="product-search-dialog-button" class="classfortooltip" data-target-element="'.$object->element.'" data-target-id="'.$object->id.'" title="'.$langs->trans("OpenSearchProductBox").'" ><i class="fa fa-search" ></i></button>';
+			print '<button type="button" accesskey="a" id="product-search-dialog-button" class="classfortooltip" data-target-element="'.$object->element.'" data-target-id="'.$object->id.'" title="'.dol_escape_htmltag($langs->trans("OpenSearchProductBox")).'" ><i class="fa fa-search" ></i></button>';
 //			print '<script id="advance-product-search-script-load" src="'.dol_buildpath('advancedproductsearch/js/advancedproductsearch.js.php',1).'"></script>'; // le chargement complet doit être vérifié voir script plus bas
 			print '<link rel="stylesheet" type="text/css" href="'.dol_buildpath('advancedproductsearch/css/advancedproductsearch.css',1).'">';
 

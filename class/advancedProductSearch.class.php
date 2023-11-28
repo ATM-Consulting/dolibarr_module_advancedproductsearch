@@ -6,6 +6,15 @@
 class AdvancedProductSearch
 {
 
+
+	public $displayResults = true; // TODO ajouter une valeur par défaut en conf
+
+	public $searchSelectArray;
+	public $searchSqlSelectCount;
+	public $fieldsToSearchAll;
+	public $fieldsToSearchAllText;
+	public $searchSqlList;
+
 	/**
 	 * @var string[]
 	 * note : if you change this items, change also advancedproductsearch.js supplierElements var
@@ -16,6 +25,54 @@ class AdvancedProductSearch
 		'invoice_supplier'
 	);
 
+	public $urlParams = array();
+
+	/**
+	 * Search params
+	 * @var string[]
+	 */
+	public $search =  array(
+		'newToken' => '',
+		'pageUrl' => '',
+		'limit' => 10,
+		'sortfield' => '',
+		'sortorder' => '',
+		'page' => 0,
+		'offset' => 0,
+
+		// LES FILTRES
+		'search_type' => -1,
+		'sall' => '',
+		'search_ref' => '',
+		'search_supplierref' => '',
+		'search_barcode' => '',
+		'search_label' => '',
+		//	'search_vatrate'
+		'search_category_product_operator' => 0,
+		'search_category_product_list' => '',
+		'search_tosell' => 1,
+		//	'search_tobuy'
+		'fourn_id' => '',
+		'catid' => '',
+		//	'search_tobatch '
+		//	'optioncss'
+		'type' => '',
+
+		'fk_company' => '',
+		'fk_project' => '',
+
+		'element' => '',
+		'fk_element' => '',
+	);
+
+
+	/**
+	 *
+	 */
+	public function __construct(){
+
+		$this->setSearchParamDefaultValues();
+	}
 
 	/**
 	 * @param $fk_soc
@@ -23,21 +80,21 @@ class AdvancedProductSearch
 	 * @return Societe
 	 */
 	static function getSocieteCache($fk_soc, $forceFetch = false){
-		global $db, $advencedProductSearchSocieteCache;
+		global $db, $advancedProductSearchSocieteCache;
 
 		if(empty($fk_soc) || $fk_soc < 0){
 			return false;
 		}
 
-		if(!empty($advencedProductSearchSocieteCache[$fk_soc]) && !$forceFetch){
-			return $advencedProductSearchSocieteCache[$fk_soc];
+		if(!empty($advancedProductSearchSocieteCache[$fk_soc]) && !$forceFetch){
+			return $advancedProductSearchSocieteCache[$fk_soc];
 		}
 		else{
 			$societe = new Societe($db);
 			$res = $societe->fetch($fk_soc);
 			if($res>0){
-				$advencedProductSearchSocieteCache[$fk_soc] = $societe;
-				return $advencedProductSearchSocieteCache[$fk_soc];
+				$advancedProductSearchSocieteCache[$fk_soc] = $societe;
+				return $advancedProductSearchSocieteCache[$fk_soc];
 			}
 		}
 
@@ -48,8 +105,8 @@ class AdvancedProductSearch
 	 * Clear product cache
 	 */
 	public function clearSocieteCache(){
-		global $advencedProductSearchSocieteCache;
-		$advencedProductSearchSocieteCache = array();
+		global $advancedProductSearchSocieteCache;
+		$advancedProductSearchSocieteCache = array();
 	}
 
 
@@ -83,15 +140,124 @@ class AdvancedProductSearch
 
 		return false;
 	}
+	/**
+	 * Corrige les valeurs des champs si besoin
+	 * @return array $this->search
+	 */
+	public function setSearchParamDefaultValues() {
+
+		if(empty($this->search['pageUrl'])){
+			$this->search['pageUrl'] = $_SERVER["PHP_SELF"];
+		}
+
+		if (!$this->search['sortfield']) $this->search['sortfield'] = "p.ref";
+		if (!$this->search['sortorder']) $this->search['sortorder'] = "ASC";
+
+		$this->search['offset'] = $this->search['limit'] * $this->search['page'];
+	}
+
+	public function  setUrlParamsFromSearch(){
+		global $conf;
+
+		if (!empty($contextpage) && $contextpage != $_SERVER["PHP_SELF"]) $this->urlParams['contextpage'] = $contextpage;
+		if ($this->search['limit'] > 0 && $this->search['limit'] != $conf->liste_limit) $this->urlParams['limit'] = $this->search['limit'];
+		if ($this->search['sall']) $this->urlParams['sall'] = $this->search['sall'];
+		if ($this->search['search_category_product_operator'] == 1) $this->urlParams['search_category_product_operator'] = $this->search['search_category_product_operator'];
+		foreach ($this->search['search_category_product_list'] as $this->searchearchCategoryProduct) {
+			$this->urlParams['search_category_product_list[]'] = $this->search['searchearchCategoryProduct'];
+		}
+		if ($this->search['search_ref']) $this->urlParams['search_ref'] = $this->search['search_ref'];
+		if ($this->search['search_supplierref']) $this->urlParams['search_supplierref'] = $this->search['search_supplierref'];
+		if ($this->search['fk_company']) $this->urlParams['socid'] = $this->search['fk_company'];
+		//	if ($this->search['search_ref']_supplier) $this->urlParams['search_ref_supplier'] = $this->search['search_ref_supplier'];
+		if ($this->search['search_barcode']) $this->urlParams['search_barcode'] = $this->search['search_barcode'];
+		if ($this->search['search_label']) $this->urlParams['search_label'] = $this->search['search_label'];
+		if ($this->search['search_tosell'] != '') $this->urlParams['search_tosell'] = $this->search['search_tosell'];
+		if ($this->search['fourn_id'] > 0) $this->urlParams['fourn_id'] = $this->search['fourn_id'];
+		//if ($this->searcheach_categ) $this->urlParams['search_categ'] = $this->search['searchearch_categ'];
+		if ($this->search['type'] != '') $this->urlParams['type'] = $this->search['type'];
+		if ($this->search['search_type'] != '') $this->urlParams['search_type'] = $this->search['search_type'];
+		if ($this->search['element']) $this->urlParams['element'] = $this->search['element'];
+		if ($this->search['fk_element']) $this->urlParams['fk_element'] = $this->search['fk_element'];
+
+		return $this->urlParamsToString();
+	}
+
+	public function urlParamsToString(){
+		$params = array();
+		foreach ($this->urlParams as $key => $value){
+			$params[] = $key.'='.urlencode($value);
+		}
+
+		return implode('&', $params);
+	}
+
+	/**
+	 * populate $this->search array from post
+	 * @return array $this->search
+	 */
+	public function getSearchParamFromPost() {
+
+		$this->search['newToken'] = function_exists('newToken') ? newToken() : $_SESSION['newtoken'];
+
+		$this->search['limit'] = GETPOST('limit', 'int') ?GETPOST('limit', 'int') : $this->search['limit'];
+		$this->search['sortfield'] = GETPOST("sortfield", 'alpha');
+		$this->search['sortorder'] = GETPOST("sortorder", 'alpha');
+		$this->search['page'] = GETPOSTISSET('pageplusone') ? (GETPOST('pageplusone') - 1) : GETPOST("page", 'int');
+		if (empty($this->search['page']) || $this->search['page'] < 0 || GETPOST('button_search', 'alpha') || GETPOST('button_removefilter', 'alpha')) { $this->search['page'] = 0; }     // If $this->search['page'] is not defined, or '' or -1 or if we click on clear filters or if we select empty mass action
+
+
+		// LES FILTRES
+		$this->search['sall'] = trim((GETPOST('search_all', 'alphanohtml') != '') ?GETPOST('search_all', 'alphanohtml') : GETPOST('sall', 'alphanohtml'));
+		$this->search['search_ref'] = GETPOST("search_ref", 'alpha');
+		$this->search['search_supplierref'] = GETPOST("search_supplierref", 'alpha');
+		$this->search['search_barcode'] = GETPOST("search_barcode", 'alpha');
+		$this->search['search_label'] = GETPOST("search_label", 'alpha');
+
+		$this->search['search_type'] = -1; // TODO $this->search['search_type'] = GETPOST("search_type", 'int');
+//	$this->search['search_vatrate'] = GETPOST("search_vatrate", 'alpha');
+		$this->search['search_category_product_operator'] = (GETPOST('search_category_product_operator', 'int') ? GETPOST('search_category_product_operator', 'int') : 0);
+		$this->search['search_category_product_list'] = GETPOST('search_category_product_list', 'array');
+		$this->search['search_tosell'] = 1; // GETPOST("search_tosell", 'int'); // TODO
+//	$this->search['search_tobuy'] = GETPOST("search_tobuy", 'int'); // TODO
+		$this->search['fourn_id'] = GETPOST("fourn_id", 'int');
+		$this->search['catid'] = GETPOST('catid', 'int');
+//	$this->search['search_tobatch ']= GETPOST("search_tobatch", 'int');
+//	$this->search['optioncss'] = GETPOST('optioncss', 'alpha');
+		$this->search['type'] = GETPOST("type", "int");
+
+
+		$this->search['fk_company'] = GETPOST("fk_company", "int");
+		$this->search['fk_project'] = GETPOST("fk_project", "int");
+
+		$this->search['element'] = GETPOST("element", 'aZ09');
+		$this->search['fk_element'] = GETPOST("fk_element", "int");
+
+
+		$this->setSearchParamDefaultValues();
+
+		return $this->search;
+	}
 
 
 	/**
 	 * return an ajax ready search table for product
-	 * @param string $pageUrl Page URL (in most cases provided with $_SERVER["PHP_SELF"])
+	 * @param string $search params
 	 * @param bool $isSupplier
 	 * @return string
 	 */
-	public static function advancedProductSearchForm($pageUrl = '', $isSupplier = false) {
+	public static function staticAdvancedProductSearchForm($search = array(), $isSupplier = false) {
+		$apsf = new self();
+		$apsf->search = array_merge($apsf->getSearchParamFromPost(), $search);
+		return $apsf->advancedProductSearchForm($isSupplier);
+	}
+
+	/**
+	 * return an ajax ready search table for product
+	 * @param bool $isSupplier
+	 * @return string
+	 */
+	public function advancedProductSearchForm($isSupplier = false) {
 		global $langs, $conf, $db, $action;
 
 		$newToken = function_exists('newToken') ? newToken() : $_SESSION['newtoken'];
@@ -117,86 +283,29 @@ class AdvancedProductSearch
 
 		$form = new Form($db);
 
-		$limit = GETPOST('limit', 'int') ?GETPOST('limit', 'int') : 10;
-		$sortfield = GETPOST("sortfield", 'alpha');
-		$sortorder = GETPOST("sortorder", 'alpha');
-		$page = GETPOSTISSET('pageplusone') ? (GETPOST('pageplusone') - 1) : GETPOST("page", 'int');
-		if (empty($page) || $page < 0 || GETPOST('button_search', 'alpha') || GETPOST('button_removefilter', 'alpha')) { $page = 0; }     // If $page is not defined, or '' or -1 or if we click on clear filters or if we select empty mass action
-		$offset = $limit * $page;
-		$pageprev = $page - 1;
-		$pagenext = $page + 1;
-		if (!$sortfield) $sortfield = "p.ref";
-		if (!$sortorder) $sortorder = "ASC";
 
 
-		// LES FILTRES
-		$search_type = '';
-		$sall = trim((GETPOST('search_all', 'alphanohtml') != '') ?GETPOST('search_all', 'alphanohtml') : GETPOST('sall', 'alphanohtml'));
-		$search_ref = GETPOST("search_ref", 'alpha');
-		$search_supplierref = GETPOST("search_supplierref", 'alpha');
-		$search_barcode = GETPOST("search_barcode", 'alpha');
-		$search_label = GETPOST("search_label", 'alpha');
-
-		$search_type = -1; // TODO $search_type = GETPOST("search_type", 'int');
-//	$search_vatrate = GETPOST("search_vatrate", 'alpha');
-		$searchCategoryProductOperator = (GETPOST('search_category_product_operator', 'int') ? GETPOST('search_category_product_operator', 'int') : 0);
-		$searchCategoryProductList = GETPOST('search_category_product_list', 'array');
-		$search_tosell = 1; // GETPOST("search_tosell", 'int'); // TODO
-//	$search_tobuy = GETPOST("search_tobuy", 'int'); // TODO
-		$fourn_id = GETPOST("fourn_id", 'int');
-		$catid = GETPOST('catid', 'int');
-//	$search_tobatch = GETPOST("search_tobatch", 'int');
-//	$optioncss = GETPOST('optioncss', 'alpha');
-		$type = GETPOST("type", "int");
-
-
-		$fk_company = GETPOST("fk_company", "int");
-		$fk_project = GETPOST("fk_project", "int");
-
-		$element = GETPOST("element", 'aZ09');
-		$fk_element = GETPOST("fk_element", "int");
-
-		$object = self::objectAutoLoad($element, $db);
+		$object = self::objectAutoLoad($this->search['element'], $db);
 		if($object > 0){
-			if($object->fetch($fk_element)){
+			if($object->fetch($this->search['fk_element'])){
 				$object->fetch_thirdparty();
 				if($object->socid>0){
-					$fk_company = $object->socid;
+					$this->search['fk_company'] = $object->socid;
 				}
 				if($object->fk_project>0){
-					$fk_project = $object->fk_project;
+					$this->search['fk_project'] = $object->fk_project;
 				}
 			}
 		}
 
 
-		$param = '';
-		if (!empty($contextpage) && $contextpage != $_SERVER["PHP_SELF"]) $param .= '&contextpage='.urlencode($contextpage);
-		if ($limit > 0 && $limit != $conf->liste_limit) $param .= '&limit='.urlencode($limit);
-		if ($sall) $param .= "&sall=".urlencode($sall);
-		if ($searchCategoryProductOperator == 1) $param .= "&search_category_product_operator=".urlencode($searchCategoryProductOperator);
-		foreach ($searchCategoryProductList as $searchCategoryProduct) {
-			$param .= "&search_category_product_list[]=".urlencode($searchCategoryProduct);
-		}
-		if ($search_ref) $param = "&search_ref=".urlencode($search_ref);
-		if ($search_supplierref) $param = "&search_supplierref=".urlencode($search_supplierref);
-		if ($fk_company) $param.= "&socid=".urlencode($fk_company);
-//	if ($search_ref_supplier) $param = "&search_ref_supplier=".urlencode($search_ref_supplier);
-		if ($search_barcode) $param .= ($search_barcode ? "&search_barcode=".urlencode($search_barcode) : "");
-		if ($search_label) $param .= "&search_label=".urlencode($search_label);
-		if ($search_tosell != '') $param .= "&search_tosell=".urlencode($search_tosell);
-		if ($fourn_id > 0) $param .= ($fourn_id ? "&fourn_id=".$fourn_id : "");
-		//if ($seach_categ) $param.=($search_categ?"&search_categ=".urlencode($search_categ):"");
-		if ($type != '') $param .= '&type='.urlencode($type);
-		if ($search_type != '') $param .= '&search_type='.urlencode($search_type);
-		if ($element) $param .= '&element='.urlencode($element);
-		if ($fk_element) $param .= '&fk_element='.urlencode($fk_element);
+		$param = '&'.$this->setUrlParamsFromSearch();
 
 		// REQUETTE SQL
 
 		// List of fields to search into when doing a "search in all"
-		$fieldstosearchall = array('p.ref','p.label','p.description',"p.note");
-		$fieldstosearchallText =array('Ref', 'Label', 'Description', 'Note');
+		$this->fieldsToSearchAll = array('p.ref','p.label','p.description',"p.note");
+		$this->fieldsToSearchAllText =array('Ref', 'Label', 'Description', 'Note');
 
 		// multilang
 		if (!empty(getDolGlobalString('MAIN_MULTILANGS'))){
@@ -204,14 +313,14 @@ class AdvancedProductSearch
 		}
 
 		if (!empty($conf->barcode->enabled)) {
-			$fieldstosearchall+=  array('p.barcode','pfp.barcode');
-			$fieldstosearchallText[]='Barcode';
+			$this->fieldsToSearchAll+=  array('p.barcode','pfp.barcode');
+			$this->fieldsToSearchAllText[]='Barcode';
 		}
 
 		// Filter on supplier
 		if (!empty($conf->fournisseur->enabled)){
-			$fieldstosearchall+=  array('pfp.ref_fourn');
-			$fieldstosearchallText[]='ProductRefFourn';
+			$this->fieldsToSearchAll+=  array('pfp.ref_fourn');
+			$this->fieldsToSearchAllText[]='ProductRefFourn';
 		}
 
 		// SELECT PART
@@ -219,109 +328,114 @@ class AdvancedProductSearch
 		if (!empty(getDolGlobalString('PRODUCT_USE_UNITS')))   $sqlSelect .= ' ,cu.label as cu_label';
 
 		// SELECT COUNT PART
-		$sqlSelectCount = ' COUNT(DISTINCT p.rowid) as nb_results ';
+		$this->searchSqlSelectCount = ' COUNT(DISTINCT p.rowid) as nb_results ';
 
-		$sql = ' FROM '.MAIN_DB_PREFIX.'product as p ';
-		if (!empty($searchCategoryProductList) || !empty($catid)) $sql .= ' LEFT JOIN '.MAIN_DB_PREFIX."categorie_product as cp ON (p.rowid = cp.fk_product) "; // We'll need this table joined to the select in order to filter by categ
-		$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_fournisseur_price as pfp ON (pfp.fk_product = p.rowid) ";
+		$this->searchSql = ' FROM '.MAIN_DB_PREFIX.'product as p ';
+		if (!empty($this->search['search_category_product_list']) || !empty($this->search['catid'])) $this->searchSql .= ' LEFT JOIN '.MAIN_DB_PREFIX."categorie_product as cp ON (p.rowid = cp.fk_product) "; // We'll need this table joined to the select in order to filter by categ
+		$this->searchSql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_fournisseur_price as pfp ON (pfp.fk_product = p.rowid) ";
 		// multilang
 		if (!empty(getDolGlobalString('MAIN_MULTILANGS'))) $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_lang as pl ON (pl.fk_product = p.rowid AND pl.lang = '".$langs->getDefaultLang()."' )";
 		if (!empty( PRODUCT_USE_UNITS))   $sql .= " LEFT JOIN ".MAIN_DB_PREFIX."c_units cu ON (cu.rowid = p.fk_unit)";
 
-		$sql .= ' WHERE p.entity IN ('.getEntity('product').')';
-		if (isset($search_tosell) && dol_strlen($search_tosell) > 0 && $search_tosell != -1) $sql .= " AND p.tosell = ".((int) $search_tosell);
-		if (isset($search_tobuy) && dol_strlen($search_tobuy) > 0 && $search_tobuy != -1)   $sql .= " AND p.tobuy = ".((int) $search_tobuy);
+		$this->searchSql .= ' WHERE p.entity IN ('.getEntity('product').')';
+		if (isset($this->search['search_tosell']) && dol_strlen($this->search['search_tosell']) > 0 && $this->search['search_tosell'] != -1) $this->searchSql .= " AND p.tosell = ".((int) $this->search['search_tosell']);
+		if (isset($this->search['search_tobuy']) && dol_strlen($this->search['search_tobuy']) > 0 && $this->search['search_tobuy'] != -1)   $this->searchSql .= " AND p.tobuy = ".((int) $this->search['search_tobuy']);
 
-		if ($sall) $sql .= natural_search($fieldstosearchall, $sall);
-		// if the type is not 1, we show all products (type = 0,2,3)
-//	if (dol_strlen($search_type) && $search_type != '-1'){
-//		if ($search_type == 1) $sql .= " AND p.fk_product_type = 1";
-//		else $sql .= " AND p.fk_product_type <> 1";
-//	}
+		if ($this->search['sall']) $this->searchSql .= natural_search($this->fieldsToSearchAll, $this->search['sall']);
 
-		if ($search_ref)     $sql .= natural_search('p.ref', $search_ref);
-		if ($search_label)   $sql .= natural_search('p.label', $search_label);
-		if ($search_barcode) $sql .= natural_search('p.barcode', $search_barcode);
+//		// if the type is not 1, we show all products (type = 0,2,3)
+//		if (dol_strlen($this->search['search_type']) && $this->search['search_type'] != '-1'){
+//			if ($this->search['search_type'] == 1) $this->searchSql .= " AND p.fk_product_type = 1";
+//			else $this->searchSql .= " AND p.fk_product_type <> 1";
+//		}
+
+		if ($this->search['search_ref'])     $this->searchSql .= natural_search('p.ref', $this->search['search_ref']);
+		if ($this->search['search_label'])   $this->searchSql .= natural_search('p.label', $this->search['search_label']);
+		if ($this->search['search_barcode']) $this->searchSql .= natural_search('p.barcode', $this->search['search_barcode']);
 		// Filter on supplier
-		if (!empty($conf->fournisseur->enabled) && !empty($search_supplierref)){
-			$sql .= natural_search('pfp.ref_fourn', $search_supplierref);
+		if (!empty($conf->fournisseur->enabled) && !empty($this->search['search_supplierref'])){
+			$this->searchSql .= natural_search('pfp.ref_fourn', $this->search['search_supplierref']);
 		}
 
-		if ($catid > 0)     $sql .= " AND cp.fk_categorie = ".$catid;
-		if ($catid == -2)   $sql .= " AND cp.fk_categorie IS NULL";
+		if ($this->search['catid'] > 0)     $this->searchSql .= " AND cp.fk_categorie = ".$this->search['catid'];
+		if ($this->search['catid'] == -2)   $this->searchSql .= " AND cp.fk_categorie IS NULL";
 
-		$searchCategoryProductSqlList = array();
-		if ($searchCategoryProductOperator == 1) {
-			foreach ($searchCategoryProductList as $searchCategoryProduct) {
-				if (intval($searchCategoryProduct) == -2) {
-					$searchCategoryProductSqlList[] = "cp.fk_categorie IS NULL";
-				} elseif (intval($searchCategoryProduct) > 0) {
-					$searchCategoryProductSqlList[] = "cp.fk_categorie = ".$db->escape($searchCategoryProduct);
+		$this->searchearchCategoryProductSqlList = array();
+		if ($this->search['search_category_product_operator'] == 1) {
+			foreach ($this->search['search_category_product_list'] as $this->searchearchCategoryProduct) {
+				if (intval($this->searchearchCategoryProduct) == -2) {
+					$this->searchearchCategoryProductSqlList[] = "cp.fk_categorie IS NULL";
+				} elseif (intval($this->searchearchCategoryProduct) > 0) {
+					$this->searchearchCategoryProductSqlList[] = "cp.fk_categorie = ".$db->escape($this->searchearchCategoryProduct);
 				}
 			}
-			if (!empty($searchCategoryProductSqlList)) {
-				$sql .= " AND (".implode(' OR ', $searchCategoryProductSqlList).")";
+			if (!empty($this->searchearchCategoryProductSqlList)) {
+				$this->searchSql .= " AND (".implode(' OR ', $this->searchearchCategoryProductSqlList).")";
 			}
 		} else {
-			foreach ($searchCategoryProductList as $searchCategoryProduct) {
-				if (intval($searchCategoryProduct) == -2) {
-					$searchCategoryProductSqlList[] = "cp.fk_categorie IS NULL";
-				} elseif (intval($searchCategoryProduct) > 0) {
-					$searchCategoryProductSqlList[] = "p.rowid IN (SELECT fk_product FROM ".MAIN_DB_PREFIX."categorie_product WHERE fk_categorie = ".$searchCategoryProduct.")";
+			foreach ($this->search['search_category_product_list'] as $this->searchearchCategoryProduct) {
+				if (intval($this->searchearchCategoryProduct) == -2) {
+					$this->searchearchCategoryProductSqlList[] = "cp.fk_categorie IS NULL";
+				} elseif (intval($this->searchearchCategoryProduct) > 0) {
+					$this->searchearchCategoryProductSqlList[] = "p.rowid IN (SELECT fk_product FROM ".MAIN_DB_PREFIX."categorie_product WHERE fk_categorie = ".$this->searchearchCategoryProduct.")";
 				}
 			}
-			if (!empty($searchCategoryProductSqlList)) {
-				$sql .= " AND (".implode(' AND ', $searchCategoryProductSqlList).")";
+			if (!empty($this->searchearchCategoryProductSqlList)) {
+				$this->searchSql .= " AND (".implode(' AND ', $this->searchearchCategoryProductSqlList).")";
 			}
 		}
-		if ($fourn_id > 0)  $sql .= " AND pfp.fk_soc = ".((int) $fourn_id);
+		if ($this->search['fourn_id'] > 0)  $this->searchSql .= " AND pfp.fk_soc = ".((int) $this->search['fourn_id']);
 
-		$output.=  '<form id="product-search-dialog-form" class="--blur-on-loading" >';
+		$output.= '<form id="product-search-dialog-form" class="--blur-on-loading" >';
 
-		$output.=  '<input type="hidden" name="token" value="'.$newToken.'">';
-		$output.=  '<input type="hidden" name="formfilteraction" id="formfilteraction" value="list">';
+		$output.= '<input type="hidden" name="token" value="'.$this->search['newToken'].'">';
+		$output.= '<input type="hidden" name="formfilteraction" id="formfilteraction" value="list">';
 		$output.= '<input type="hidden" name="action" value="product-search-form">';
-		$output.= '<input type="hidden" name="token" value="'.$newToken.'">';
-		$output.= '<input type="hidden" name="sortfield" value="'.$sortfield.'">';
-		$output.= '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
-		//$output.= '<input type="hidden" name="page" value="'.$page.'">';
-		$output.= '<input type="hidden" name="type" value="'.$type.'">';
-		$output.= '<input type="hidden" name="fk_company" value="'.$fk_company.'">';
-		$output.= '<input type="hidden" id="advancedproductsearch-form-element" name="element" value="'.$element.'">';
-		$output.= '<input type="hidden" id="advancedproductsearch-form-fk-element" name="fk_element" value="'.$fk_element.'">';
-		$output.= '<input type="hidden" id="advancedproductsearch-form-fk-project" name="fk_project" value="'.$fk_project.'">';
+		$output.= '<input type="hidden" name="token" value="'.$this->search['newToken'].'">';
+		$output.= '<input type="hidden" name="sortfield" value="'.$this->search['sortfield'].'">';
+		$output.= '<input type="hidden" name="sortorder" value="'.$this->search['sortorder'].'">';
+		//$output.= '<input type="hidden" name="page" value="'.$this->search['page'].'">';
+		$output.= '<input type="hidden" name="type" value="'.$this->search['type'].'">';
+		$output.= '<input type="hidden" name="fk_company" value="'.$this->search['fk_company'].'">';
+		$output.= '<input type="hidden" id="advancedproductsearch-form-element" name="element" value="'.$this->search['element'].'">';
+		$output.= '<input type="hidden" id="advancedproductsearch-form-fk-element" name="fk_element" value="'.$this->search['fk_element'].'">';
+		$output.= '<input type="hidden" id="advancedproductsearch-form-fk-project" name="fk_project" value="'.$this->search['fk_project'].'">';
 		$output.= '<input type="hidden" id="advancedproductsearch-form-default-customer-reduction" name="default_customer_reduction" value="'.floatval($object->thirdparty->remise_percent).'">';
 
-		$querySearchRes = $db->query('SELECT '.$sqlSelectCount.' '.$sql);
 		$globalCountResult = 0;
 		$curentCountResult = 0;
-		if ($querySearchRes) {
-			$obj = $db->fetch_object($querySearchRes);
-			$globalCountResult = $obj->nb_results;
 
-			$querySearchRes = $db->query('SELECT '.$sqlSelect.' '.$sql.$db->plimit($limit + 1, $offset));
+
+		if($this->displayResults) {
+			$querySearchRes = $db->query('SELECT ' . $this->searchSqlSelectCount . ' ' . $this->searchSql);
 			if ($querySearchRes) {
-				$curentCountResult = $db->num_rows($querySearchRes);
+				$obj = $db->fetch_object($querySearchRes);
+				$globalCountResult = $obj->nb_results;
+
+				$querySearchRes = $db->query('SELECT ' . $this->searchSqlSelect . ' ' . $this->searchSql . $db->plimit($this->search['limit'] + 1, $this->search['offset']));
+				if ($querySearchRes) {
+					$curentCountResult = $db->num_rows($querySearchRes);
+				}
 			}
 		}
 
-		$morehtmlcenter= '<div class="advanced-product-global-search-container" >';
+		$moreHtmlCenter= '<div class="advanced-product-global-search-container" >';
 
-		foreach ($fieldstosearchallText as $i => $langKey){
-			$fieldstosearchallText[$i] = $langs->trans($langKey);
+		foreach ($this->fieldsToSearchAllText as $i => $langKey){
+			$this->fieldsToSearchAllText[$i] = $langs->trans($langKey);
 		}
-		$toolTip = $langs->trans('SearchWillBeOnTheseFields', '<br/>' . implode(', ' , $fieldstosearchallText));
+		$toolTip = $langs->trans('SearchWillBeOnTheseFields', '<br/>' . implode(', ' , $this->fieldsToSearchAllText));
 
 
-		$morehtmlcenter.= '<input name="sall" value="'.dol_htmlentities($sall).'" id="search-all-form-input" class="advanced-product-global-search-input" placeholder="'.$langs->trans('Search').'" autocomplete="off">';
-		$morehtmlcenter.= '<i title="'.dol_escape_htmltag($toolTip).'" class="fa fa-question-circle classfortooltip"></i>';
-		$morehtmlcenter.= '</div>';
+		$moreHtmlCenter.= '<input name="sall" value="'.dol_htmlentities($this->search['sall']).'" id="search-all-form-input" class="advanced-product-global-search-input" placeholder="'.$langs->trans('Search').'" autocomplete="off">';
+		$moreHtmlCenter.= '<i title="'.dol_escape_htmltag($toolTip).'" class="fa fa-question-circle classfortooltip"></i>';
+		$moreHtmlCenter.= '</div>';
 
 		$picto = 'product';
-		if ($type == 1) $picto = 'service';
+		if ($this->search['type'] == 1) $picto = 'service';
 
 		ob_start(); // parceque dolibarr aime tellement le print ...
-		print_barre_liste($langs->trans('AdvancedProductSearch'), $page, $pageUrl, $param, $sortfield, $sortorder, $morehtmlcenter, $curentCountResult, $globalCountResult, $picto, 0, '', '', $limit, 0, 0, 0);
+		print_barre_liste($langs->trans('AdvancedProductSearch'), $this->search['page'], $this->search['pageUrl'], $param, $this->search['sortfield'], $this->search['sortorder'], $moreHtmlCenter, $curentCountResult, $globalCountResult, $picto, 0, '', '', $this->search['limit'], 0, 0, 0);
 		$output.= ob_get_contents();
 		ob_end_clean();
 
@@ -330,55 +444,55 @@ class AdvancedProductSearch
 		if($globalCountResult > 0){
 			$output.= '<div class="advancedproductsearch__results-count">';
 			if($globalCountResult>1){
-				$output.= $langs->trans('resultsDisplayForNbResultsFounds', min($limit,$globalCountResult), $globalCountResult );
+				$output.= $langs->trans('resultsDisplayForNbResultsFounds', min($this->search['limit'],$globalCountResult), $globalCountResult );
 			}
 			else{
-				$output.= $langs->trans('OneResultDisplayForOneResultFounds', min($limit,$globalCountResult), $globalCountResult );
+				$output.= $langs->trans('OneResultDisplayForOneResultFounds', min($this->search['limit'],$globalCountResult), $globalCountResult );
 			}
 			$output.= '</div>';
 		}
 
-		$moreforfilter = '';
+		$moreForFilter = '';
 		// Filter on supplier
 		if (!empty($conf->fournisseur->enabled))
 		{
-			$moreforfilter .= '<div class="divsearchfield" >';
-			$moreforfilter .= $langs->trans('Supplier').': ';
-			$moreforfilter .= $form->select_company($fourn_id, 'fourn_id', '', 1, 'supplier');
-			$moreforfilter .= '</div>';
+			$moreForFilter .= '<div class="divsearchfield" >';
+			$moreForFilter .= $langs->trans('Supplier').': ';
+			$moreForFilter .= $form->select_company($this->search['fourn_id'], 'fourn_id', '', 1, 'supplier');
+			$moreForFilter .= '</div>';
 
-			$moreforfilter .= '<div class="divsearchfield" >';
-			$moreforfilter .= $langs->trans('SupplierRef').': ';
-			$moreforfilter .= '<input type="text" name="search_supplierref" value="'.dol_htmlentities($search_supplierref).'" />';
-			$moreforfilter .= '</div>';
+			$moreForFilter .= '<div class="divsearchfield" >';
+			$moreForFilter .= $langs->trans('SupplierRef').': ';
+			$moreForFilter .= '<input type="text" name="search_supplierref" value="'.dol_htmlentities($this->search['search_supplierref']).'" />';
+			$moreForFilter .= '</div>';
 		}
 
 
 		// Filter on categories
 		if (!empty($conf->categorie->enabled))
 		{
-			$moreforfilter .= '<div class="divsearchfield" >';
-			$moreforfilter .= $langs->trans('ProductCategories').': ';
+			$moreForFilter .= '<div class="divsearchfield" >';
+			$moreForFilter .= $langs->trans('ProductCategories').': ';
 			$categoriesProductArr = $form->select_all_categories(Categorie::TYPE_PRODUCT, '', '', 64, 0, 1);
 			$categoriesProductArr[-2] = '- '.$langs->trans('NotCategorized').' -';
-			$moreforfilter .= Form::multiselectarray('search_category_product_list', $categoriesProductArr, $searchCategoryProductList, 0, 0, 'minwidth300');
-			$moreforfilter .= ' <label><input type="checkbox" class="valignmiddle" name="search_category_product_operator" value="1"'.($searchCategoryProductOperator == 1 ? ' checked="checked"' : '').'/> '.$langs->trans('UseOrOperatorForCategories').'</label>';
-			$moreforfilter .= '</div>';
+			$moreForFilter .= Form::multiselectarray('search_category_product_list', $categoriesProductArr, $this->search['search_category_product_list'], 0, 0, 'minwidth300');
+			$moreForFilter .= ' <label><input type="checkbox" class="valignmiddle" name="search_category_product_operator" value="1"'.($this->search['search_category_product_operator'] == 1 ? ' checked="checked"' : '').'/> '.$langs->trans('UseOrOperatorForCategories').'</label>';
+			$moreForFilter .= '</div>';
 		}
 
 //	$parameters = array();
 //	$reshook = $hookmanager->executeHooks('printFieldPreListTitle', $parameters); // Note that $action and $object may have been modified by hook
-//	if (empty($reshook)) $moreforfilter .= $hookmanager->resPrint;
-//	else $moreforfilter = $hookmanager->resPrint;
+//	if (empty($reshook)) $moreForFilter .= $hookmanager->resPrint;
+//	else $moreForFilter = $hookmanager->resPrint;
 
-		if ($moreforfilter)
+		if ($moreForFilter)
 		{
 			$output.= '<div class="liste_titre liste_titre_bydiv centpercent">';
-			$output.= $moreforfilter;
+			$output.= $moreForFilter;
 			$output.= '</div>';
 		}
 
-		$colnumber = 8;
+		$colNumber = 8;
 
 		$output.= '<table class="noborder centpercent advance-search-product-results" >';
 		$output.= '<thead>';
@@ -386,11 +500,11 @@ class AdvancedProductSearch
 		$output.= '<tr class="advanced-product-search-row --search liste_titre">';
 
 		$output.= '	<th class="advanced-product-search-col --ref" >';
-		$output.= ' <input type="text" class="flat"  name="search_ref" value="'.dol_htmlentities($search_ref).'" placeholder="'.$langs->trans('SearchRef').'" />';
+		$output.= ' <input type="text" class="flat"  name="search_ref" value="'.dol_htmlentities($this->search['search_ref']).'" placeholder="'.$langs->trans('SearchRef').'" />';
 		$output.= '	</th>';
 
 		$output.= '	<th class="advanced-product-search-col --label" >';
-		$output.= ' <input type="text" class="flat"  name="search_label" value="'.dol_htmlentities($search_label).'" placeholder="'.$langs->trans('SearchLabel').'" />';
+		$output.= ' <input type="text" class="flat"  name="search_label" value="'.dol_htmlentities($this->search['search_label']).'" placeholder="'.$langs->trans('SearchLabel').'" />';
 		$output.= '	</th>';
 
 
@@ -428,21 +542,21 @@ class AdvancedProductSearch
 
 		$output.= '<tr class="advanced-product-search-row --title liste_titre">';
 		$output.= '	<th class="advanced-product-search-col --ref" >'
-			. self::getDialogColSortLink($langs->trans('Ref'), $pageUrl, "p.ref", $param, $sortfield, $sortorder, $classForSortLink)
+			. self::getDialogColSortLink($langs->trans('Ref'), $this->search['pageUrl'], "p.ref", $param, $this->search['sortfield'], $this->search['sortorder'], $classForSortLink)
 			.'</th>';
 
 		$output.= '	<th class="advanced-product-search-col --label" >'
-			. self::getDialogColSortLink($langs->trans('Label'), $pageUrl, "p.label", $param, $sortfield, $sortorder, $classForSortLink)
+			. self::getDialogColSortLink($langs->trans('Label'), $this->search['pageUrl'], "p.label", $param, $this->search['sortfield'], $this->search['sortorder'], $classForSortLink)
 			.'</th>';
 
 		if($conf->stock->enabled){
 			$output.= '	<th class="advanced-product-search-col --stock-reel center" >'.$langs->trans('RealStock').'</th>';
 			$output.= '	<th class="advanced-product-search-col --stock-theorique center" >'.$langs->trans('VirtualStock').'</th>';
-			$colnumber+=2;
+			$colNumber+=2;
 		}
 
 		if ($conf->fournisseur->enabled) {
-			$colnumber++;
+			$colNumber++;
 			$output .= '	<th class="advanced-product-search-col --buy-price" >' . ($isSupplier ? $langs->trans('PredefinedFournPricesForFill').img_help(1, $langs->trans('PredefinedFournPricesForFillHelp')) : $langs->trans('BuyPrice')) . '</th>';
 		}
 		$output.= '	<th class="advanced-product-search-col --subprice" >'.$langs->trans('Price').'</th>';
@@ -471,162 +585,173 @@ class AdvancedProductSearch
 		$output.= '</thead>';
 		$output.= '<tbody>';
 
-		$sqlList = 'SELECT '.$sqlSelect.' '
-			.$sql.$db->order($sortfield, $sortorder)
-			.$db->plimit($limit + 1, $offset);
+		$this->searchSqlList = 'SELECT '.$this->searchSqlSelect.' '
+			.$this->searchSql.$db->order($this->search['sortfield'], $this->search['sortorder'])
+			.$db->plimit($this->search['limit'] + 1, $this->search['offset']);
 
-		$querySearchRes = $db->query($sqlList);
+		if($this->displayResults) {
 
-		if ($querySearchRes)
-		{
-			if($curentCountResult > 0){
-				while ($obj = $db->fetch_object($querySearchRes)){
-					$product = new Product($db);
-					$resProd = $product->fetch($obj->rowid);
-					if($resProd > 0){
-						$product->load_stock();
+			$querySearchRes = $db->query($this->searchSqlList);
 
-						// Réduction par défaut du client
-						$reduction = doubleval($object->thirdparty->remise_percent);
-						if($isSupplier) {
-							$reduction = doubleval($object->thirdparty->remise_supplier_percent);
-						}
+			if ($querySearchRes) {
+				if ($curentCountResult > 0) {
+					while ($obj = $db->fetch_object($querySearchRes)) {
+						$product = new Product($db);
+						$resProd = $product->fetch($obj->rowid);
+						if ($resProd > 0) {
+							$product->load_stock();
 
-						// Prix unitaire du produit avec prise en compte des niveau de prix et du client
-						$subprice = self::getProductSellPrice($product->id, $fk_company);
-						if($isSupplier) {
-							$subprice = 0;
-						}
+							// Réduction par défaut du client
+							$reduction = doubleval($object->thirdparty->remise_percent);
+							if ($isSupplier) {
+								$reduction = doubleval($object->thirdparty->remise_supplier_percent);
+							}
 
-						// calcule du prix unitaire final apres réduction
-						$finalSubprice = $subprice - $subprice*$reduction/100;
+							// Prix unitaire du produit avec prise en compte des niveau de prix et du client
+							$this->searchubprice = self::getProductSellPrice($product->id, $this->search['fk_company']);
+							if ($isSupplier) {
+								$this->searchubprice = 0;
+							}
 
-						// COMPTATIBILITE MODULE DISCOUNT RULE : RECHERCHE DE REGLE DE TARIFICATION
-						if (!empty($conf->discountrules->enabled) && !$isSupplier){
-							if(!class_exists('DiscountSearch')){ dol_include_once('/discountrules/class/discountSearch.class.php'); }
-							if(class_exists('DiscountSearch')) { // Il est possible que le module soit supprimé mais pas désinstallé
-								$discountSearch = new DiscountSearch($db);
-								$subprice = DiscountRule::getProductSellPrice($product->id, $fk_company);
-								$discountSearchResult = $discountSearch->search(0, $product->id, $fk_company, $fk_project);
-								if ($discountSearchResult->result) {
-									// Mise en page du résultat
-									$discountSearchResult->tpMsg = getDiscountRulesInterfaceMessageTpl($langs, $discountSearchResult, $action);
-									$subprice = $discountSearchResult->subprice;
-									$finalSubprice = $discountSearchResult->calcFinalSubprice();
+							// calcule du prix unitaire final apres réduction
+							$finalSubprice = $this->searchubprice - $this->searchubprice * $reduction / 100;
 
-									if (!empty($discountSearchResult->reduction)) {
-										$reduction = $discountSearchResult->reduction;
+							// COMPTATIBILITE MODULE DISCOUNT RULE : RECHERCHE DE REGLE DE TARIFICATION
+							if (!empty($conf->discountrules->enabled) && !$isSupplier) {
+								if (!class_exists('DiscountSearch')) {
+									dol_include_once('/discountrules/class/discountSearch.class.php');
+								}
+								if (class_exists('DiscountSearch')) { // Il est possible que le module soit supprimé mais pas désinstallé
+									$discountSearch = new DiscountSearch($db);
+									$this->searchubprice = DiscountRule::getProductSellPrice($product->id, $this->search['fk_company']);
+									$discountSearchResult = $discountSearch->search(0, $product->id, $this->search['fk_company'], $this->search['fk_project']);
+									if ($discountSearchResult->result) {
+										// Mise en page du résultat
+										$discountSearchResult->tpMsg = getDiscountRulesInterfaceMessageTpl($langs, $discountSearchResult, $action);
+										$this->searchubprice = $discountSearchResult->subprice;
+										$finalSubprice = $discountSearchResult->calcFinalSubprice();
+
+										if (!empty($discountSearchResult->reduction)) {
+											$reduction = $discountSearchResult->reduction;
+										}
 									}
+								} else {
+									setEventMessage($langs->trans('ErrorMissingModuleDiscountRule'));
 								}
 							}
-							else{
-								setEventMessage($langs->trans('ErrorMissingModuleDiscountRule'));
+
+
+							$output .= '<tr class="advanced-product-search-row --data" data-product="' . $product->id . '"  >';
+							$output .= '<td class="advanced-product-search-col --ref" >' . $product->getNomUrl(1) . '</td>';
+							$output .= '<td class="advanced-product-search-col --label" >' . self::highlightWordsOfSearchQuery($product->label, $this->search['search_label'] . ' ' . $this->search['sall']) . '</td>';
+							if ($conf->stock->enabled) {
+								$output .= '<td class="advanced-product-search-col --stock-reel" >' . $product->stock_reel . '</td>';
+								$output .= '<td class="advanced-product-search-col --stock-theorique" >' . $product->stock_theorique . '</td>';
 							}
-						}
 
-
-
-						$output.= '<tr class="advanced-product-search-row --data" data-product="'.$product->id.'"  >';
-						$output.= '<td class="advanced-product-search-col --ref" >'. $product->getNomUrl(1).'</td>';
-						$output.= '<td class="advanced-product-search-col --label" >'. self::highlightWordsOfSearchQuery($product->label, $search_label.' '.$sall).'</td>';
-						if($conf->stock->enabled) {
-							$output .= '<td class="advanced-product-search-col --stock-reel" >' . $product->stock_reel . '</td>';
-							$output .= '<td class="advanced-product-search-col --stock-theorique" >' . $product->stock_theorique . '</td>';
-						}
-
-						if ($conf->fournisseur->enabled) {
-							$output .= '<td class="advanced-product-search-col --buy-price" >';
-							$TFournPriceList = self::getFournPriceList($product->id, $isSupplier ? $object->socid : 0);
-							if (!empty($TFournPriceList)) {
+							if ($conf->fournisseur->enabled) {
+								$output .= '<td class="advanced-product-search-col --buy-price" >';
+								$TFournPriceList = self::getFournPriceList($product->id, $isSupplier ? $object->socid : 0);
+								if (!empty($TFournPriceList)) {
 //						$output.= '<div class="default-visible" >'.price($product->pmp).'</div>';
 //						$output.= '<div class="default-hidden" >';
 
-								$selectArray = array();
-								$idSelected = '';
+									$this->searchSelectArray = array();
+									$idSelected = '';
 
-								foreach ($TFournPriceList as $TpriceInfos) {
-									$selectArray[$TpriceInfos['id']] = array(
-										'label'=>$TpriceInfos['label'],
-										'data-up'=>$TpriceInfos['price'],
-										'data-fourn_qty'=>$TpriceInfos['fourn_qty']
+									foreach ($TFournPriceList as $TpriceInfos) {
+										$this->searchSelectArray[$TpriceInfos['id']] = array(
+											'label' => $TpriceInfos['label'],
+											'data-up' => $TpriceInfos['price'],
+											'data-fourn_qty' => $TpriceInfos['fourn_qty']
 										);
-									if ($TpriceInfos['id'] == 'pmpprice' && !empty($TpriceInfos['price'])) {
-										$idSelected = 'pmpprice';
-									}
-								}
-
-								if($isSupplier) { // Seuls les prix fournisseurs nous intéressent dans le cadre d'un document fournisseur (pas de PMP ou autre dans ce cas)
-									unset($selectArray['pmpprice']);
-									unset($selectArray['costprice']);
-									if(!empty($selectArray)) {
-										if(count($selectArray) == 1 && ($object->element !== 'supplier_proposal' ||  getDolGlobalString('ADVANCED_PRODUCT_SEARCH_PRESELECT_IF_ONE_FOURN_PRICE_ON_SUPPLIER_PROPOSAL'))) {
-											$idSelected = key($selectArray);
-											$subprice = $selectArray[$idSelected]['data-up'];
-											// Recalcul du subprice final
-											$finalSubprice = $subprice - $subprice*$reduction/100;
+										if (!empty($conf->margin->enabled)) {
+											if ($conf->global->MARGIN_TYPE == 1 && is_numeric($TpriceInfos['id'])) {
+												$idSelected = $TpriceInfos['id'];
+											} elseif ($conf->global->MARGIN_TYPE === 'pmp') {
+												$idSelected = 'pmpprice';
+											} elseif ($conf->global->MARGIN_TYPE === 'costprice') {
+												$idSelected = 'costprice';
+											}
+										} else {
+											if ($TpriceInfos['id'] == 'pmpprice' && !empty($TpriceInfos['price'])) {
+												$idSelected = 'pmpprice';
+											}
 										}
-										// On insère une valeur vide, car si plusieurs prix fourn, on laisse le choix à l'utilisateur de sélectionner celui qu'il souhaite
-										$selectArray[0] = array('data-up' => 0, 'data-fourn_qty' => 0);
 									}
-								}
+
+									if ($isSupplier) { // Seuls les prix fournisseurs nous intéressent dans le cadre d'un document fournisseur (pas de PMP ou autre dans ce cas)
+										unset($this->searchSelectArray['pmpprice']);
+										unset($this->searchSelectArray['costprice']);
+										if (!empty($this->searchSelectArray)) {
+											if (count($this->searchSelectArray) == 1 && ($object->element !== 'supplier_proposal' || $conf->global->ADVANCED_PRODUCT_SEARCH_PRESELECT_IF_ONE_FOURN_PRICE_ON_SUPPLIER_PROPOSAL)) {
+												$idSelected = key($this->searchSelectArray);
+												$this->searchubprice = $this->searchSelectArray[$idSelected]['data-up'];
+												// Recalcul du subprice final
+												$finalSubprice = $this->searchubprice - $this->searchubprice * $reduction / 100;
+											}
+											// On insère une valeur vide, car si plusieurs prix fourn, on laisse le choix à l'utilisateur de sélectionner celui qu'il souhaite
+											$this->searchSelectArray[0] = array('data-up' => 0, 'data-fourn_qty' => 0);
+										}
+									}
 
 
-								$key_in_label = 0;
-								$value_as_key = 0;
-								$moreparam = 'data-product="'.$product->id.'"';
-								$translate = 0;
-								$maxlen = 0;
-								$disabled = 0;
-								if($isSupplier) $sort = 'ASC';
-								else $sort = 'DESC';
-								$morecss = 'search-list-select';
-								$addjscombo = 0;
-								if(!empty($selectArray)) {
-									$output .= $form->selectArray('prodfourprice-' . $product->id, $selectArray, $idSelected, 0, $key_in_label, $value_as_key, $moreparam, $translate, $maxlen, $disabled, $sort, $morecss, $addjscombo);
-								}
+									$key_in_label = 0;
+									$value_as_key = 0;
+									$moreparam = 'data-product="' . $product->id . '"';
+									$translate = 0;
+									$maxlen = 0;
+									$disabled = 0;
+									if ($isSupplier) $this->searchSort = 'ASC';
+									else $this->searchSort = 'DESC';
+									$morecss = 'search-list-select';
+									$addjscombo = 0;
+									if (!empty($this->searchSelectArray)) {
+										$output .= $form->selectArray('prodfourprice-' . $product->id, $this->searchSelectArray, $idSelected, 0, $key_in_label, $value_as_key, $moreparam, $translate, $maxlen, $disabled, $this->searchSort, $morecss, $addjscombo);
+									}
 //						$output.= '</div>';
-							} else {
-								$output .= price($product->pmp);
+								} else {
+									$output .= price($product->pmp);
+								}
+								$output .= '</td>';
 							}
+
+
+							//
+							$output .= '<td class="advanced-product-search-col --subprice right nowraponall" >';
+							$output .= '<input id="advanced-product-search-list-input-subprice-' . $product->id . '"  data-product="' . $product->id . '"   class="advanced-product-search-list-input-subprice right on-update-calc-prices" type="number" step="any" min="0" maxlength="8" size="3" value="' . $this->searchubprice . '" placeholder="x" name="prodsubprice[' . $product->id . ']" />';
+							$output .= ' ' . $langs->trans("HT");
 							$output .= '</td>';
-						}
 
+							// REDUCTION EN %
+							$output .= '<td class="advanced-product-search-col --discount center" >';
+							$output .= '<input id="advanced-product-search-list-input-reduction-' . $product->id . '"  data-product="' . $product->id . '"   class="advanced-product-search-list-input-reduction center on-update-calc-prices" type="number" step="any" min="0" max="100" maxlength="3" size="3" value="' . $reduction . '" placeholder="%" name="prodreduction[' . $product->id . ']" />';
+							$output .= '%';
+							$output .= '</td>';
 
-						//
-						$output.= '<td class="advanced-product-search-col --subprice right nowraponall" >';
-						$output.= '<input id="advanced-product-search-list-input-subprice-'.$product->id.'"  data-product="'.$product->id.'"   class="advanced-product-search-list-input-subprice right on-update-calc-prices" type="number" step="any" min="0" maxlength="8" size="3" value="'.$subprice.'" placeholder="x" name="prodsubprice['.$product->id.']" />';
-						$output.= ' '.$langs->trans("HT");
-						$output.= '</td>';
+							// FINAL SUBPRICE AFTER REDUCTION
+							$output .= '<td class="advanced-product-search-col --finalsubprice right" >';
+							$output .= '<span id="discount-prod-list-final-subprice-' . $product->id . '"  class="final-subpriceprice" >' . price(round($finalSubprice, $conf->global->MAIN_MAX_DECIMALS_UNIT)) . '</span> ' . $langs->trans("HT");
+							$output .= '</td>';
 
-						// REDUCTION EN %
-						$output.= '<td class="advanced-product-search-col --discount center" >';
-						$output.= '<input id="advanced-product-search-list-input-reduction-'.$product->id.'"  data-product="'.$product->id.'"   class="advanced-product-search-list-input-reduction center on-update-calc-prices" type="number" step="any" min="0" max="100" maxlength="3" size="3" value="'.$reduction.'" placeholder="%" name="prodreduction['.$product->id.']" />';
-						$output.= '%';
-						$output.= '</td>';
+							// QTY
+							$output .= '<td class="advanced-product-search-col --qty" >';
+							$qty = 1;
+							$qtyMin = 0;
 
-						// FINAL SUBPRICE AFTER REDUCTION
-						$output.= '<td class="advanced-product-search-col --finalsubprice right" >';
-						$output.= '<span id="discount-prod-list-final-subprice-'.$product->id.'"  class="final-subpriceprice" >'.price(round($finalSubprice, getDolGlobalString('MAIN_MAX_DECIMALS_UNIT'))).'</span> '.$langs->trans("HT");
-						$output.= '</td>';
-
-						// QTY
-						$output.= '<td class="advanced-product-search-col --qty" >';
-						$qty = 1;
-						$qtyMin = 0;
-
-						if (!empty($selectArray)) {
-							$currentlySelectedFournPrice = reset($selectArray);
-							if (!empty($currentlySelectedFournPrice['data-fourn_qty'])) {
-								$qtyMin = doubleval($currentlySelectedFournPrice['data-fourn_qty']);
+							if (!empty($this->searchSelectArray)) {
+								$currentlySelectedFournPrice = reset($this->searchSelectArray);
+								if (!empty($currentlySelectedFournPrice['data-fourn_qty'])) {
+									$qtyMin = doubleval($currentlySelectedFournPrice['data-fourn_qty']);
+								}
 							}
-						}
-						// Si le quantity est affecter par un autre élément, plus tard.
-						if ($qtyMin > $qty) {
-							$qty = $qtyMin;
-						}
+							// Si le quantity est affecter par un autre élément, plus tard.
+							if ($qtyMin > $qty) {
+								$qty = $qtyMin;
+							}
 
-						$output.= '<input id="advanced-product-search-list-input-qty-'.$product->id.'"  data-product="'.$product->id.'"  class="advanced-product-search-list-input-qty center on-update-calc-prices" type="number" step="any" min="'.$qtyMin.'" maxlength="8" size="3" value="'.$qty.'" placeholder="x" name="prodqty['.$product->id.']" />';
-						$output.= '</td>';
+							$output .= '<input id="advanced-product-search-list-input-qty-' . $product->id . '"  data-product="' . $product->id . '"  class="advanced-product-search-list-input-qty center on-update-calc-prices" type="number" step="any" min="' . $qtyMin . '" maxlength="8" size="3" value="' . $qty . '" placeholder="x" name="prodqty[' . $product->id . ']" />';
+							$output .= '</td>';
 
 						// UNITE
 						if (!empty(getDolGlobalString('PRODUCT_USE_UNITS'))) {
@@ -635,39 +760,41 @@ class AdvancedProductSearch
 							$output.= '</td>';
 						}
 
-						$output.= '<td class="advanced-product-search-col --finalprice right" >';
-						$finalPrice = $finalSubprice*$qty;
-						$output.= '<span id="discount-prod-list-final-price-'.$product->id.'"  class="final-price" >'.price(round($finalPrice, getDolGlobalString('MAIN_MAX_DECIMALS_TOT') )).'</span> '.$langs->trans("HT");
-						$output.= '</td>';
+							$output .= '<td class="advanced-product-search-col --finalprice right" >';
+							$finalPrice = $finalSubprice * $qty;
+							$output .= '<span id="discount-prod-list-final-price-' . $product->id . '"  class="final-price" >' . price(round($finalPrice, $conf->global->MAIN_MAX_DECIMALS_TOT)) . '</span> ' . $langs->trans("HT");
+							$output .= '</td>';
 
-						$output.= '<td class="advanced-product-search-col --action" >';
+							$output .= '<td class="advanced-product-search-col --action" >';
 //					$output.= '<div class="default-hidden" >';
-						$output.= ' <button type="button" title="'.$langs->trans('ClickToAddProductInDocument').'"  data-product="'.$product->id.'" class="advance-prod-search-list-action-btn --addProductToLine" ><span class="fa fa-plus add-btn-icon"></span> '.$langs->trans('Add').'</button>';
+							$output .= ' <button type="button" title="' . $langs->trans('ClickToAddProductInDocument') . '"  data-product="' . $product->id . '" class="advance-prod-search-list-action-btn --addProductToLine" ><span class="fa fa-plus add-btn-icon"></span> ' . $langs->trans('Add') . '</button>';
 //					$output.= '</div>';
-						$output.= '</td>';
+							$output .= '</td>';
 
-						$output.= '</tr>';
-					}
-					else{
-						$output.= '<tr class="advanced-product-search-row">';
-						$output.= '<td class="advanced-product-search-col-error center" colspan="'.$colnumber.'">'. $product->errorsToString() .'</td>';
-						$output.= '</tr>';
+							$output .= '</tr>';
+						} else {
+							$output .= '<tr class="advanced-product-search-row">';
+							$output .= '<td class="advanced-product-search-col-error center" colspan="' . $colNumber . '">' . $product->errorsToString() . '</td>';
+							$output .= '</tr>';
+
+						}
 
 					}
+				} else {
+					$output .= '<tr class="advanced-product-search-row">';
+					$output .= '<td class="advanced-product-search-col-no-result" colspan="' . $colNumber . '">' . $langs->trans("NoResults") . '</td>';
+					$output .= '</tr>';
 
 				}
+			} else {
+				$output .= '<tr class="advanced-product-search-row">';
+				$output .= '<td class="advanced-product-search-col-error" colspan="' . $colNumber . '">' . $db->error() . '</td>';
+				$output .= '</tr>';
 			}
-			else{
-				$output.= '<tr class="advanced-product-search-row">';
-				$output.= '<td class="advanced-product-search-col-no-result" colspan="'.$colnumber.'">'. $langs->trans("NoResults") .'</td>';
-				$output.= '</tr>';
-
-			}
-		}
-		else{
-			$output.= '<tr class="advanced-product-search-row">';
-			$output.= '<td class="advanced-product-search-col-error" colspan="'.$colnumber.'">'. $db->error() .'</td>';
-			$output.= '</tr>';
+		} else {
+			$output .= '<tr class="advanced-product-search-row">';
+			$output .= '<td class="advanced-product-search-col-no-result" colspan="' . $colNumber . '">' . $langs->trans("launchYourFirstSearch") . '</td>';
+			$output .= '</tr>';
 		}
 
 		$output.= '</tbody>';
@@ -677,16 +804,17 @@ class AdvancedProductSearch
 		return $output;
 	}
 
+
 	/**
-	 * @param $label		Translation key of field
-	 * @param $pageUrl		Url used when we click on sort picto
-	 * @param $field		Field to use for new sorting. Empty if this field is not sortable. Example "t.abc" or "t.abc,t.def"
-	 * @param $param		Add more parameters on sort url links ("" by default)
-	 * @param $sortfield	Current field used to sort (Ex: 'd.datep,d.id')
-	 * @param $sortorder	Current sort order (Ex: 'asc,desc')
+	 * @param $label	string	Translation key of field
+	 * @param $pageUrl	string	Url used when we click on sort picto
+	 * @param $field	string	Field to use for new sorting. Empty if this field is not sortable. Example "t.abc" or "t.abc,t.def"
+	 * @param $moreParams	string	Add more parameters on sort url links ("" by default)
+	 * @param $sortfield	string Current field used to sort (Ex: 'd.datep,d.id')
+	 * @param $sortorder	string Current sort order (Ex: 'asc,desc')
 	 * @return string
 	 */
-	public static function getDialogColSortLink($label, $pageUrl, $field, $param, $sortfield, $sortorder, $moreClass = ""){
+	public static function getDialogColSortLink($label, $pageUrl, $field, $moreParams, $sortfield, $sortorder, $moreClass = ""){
 		$sortorder = strtoupper($sortorder);
 		$tmpsortfield = explode(',', $sortfield);
 		$sortfield1 = trim($tmpsortfield[0]); // If $sortfield is 'd.datep,d.id', it becomes 'd.datep'
@@ -720,7 +848,7 @@ class AdvancedProductSearch
 		$sortordertouseinlink = preg_replace('/,$/', '', $sortordertouseinlink);
 
 
-		$out = '<a class="reposition '.$moreClass.'" href="'.$pageUrl.'?sortfield='.$field.'&sortorder='.$sortordertouseinlink.$param.'" >';
+		$out = '<a class="reposition '.$moreClass.'" href="'.$pageUrl.'?sortfield='.$field.'&sortorder='.$sortordertouseinlink.$moreParams.'" >';
 		$out.= $label;
 		$out.= '</a>';
 
@@ -730,11 +858,11 @@ class AdvancedProductSearch
 	/**
 	 * Return an object
 	 *
-	 * @param string $objecttype Type of object ('invoice', 'order', 'expedition_bon', 'myobject@mymodule', ...)
+	 * @param string $objectType Type of object ('invoice', 'order', 'expedition_bon', 'myobject@mymodule', ...)
 	 * @param $db
 	 * @return int object of $objecttype
 	 */
-	public static function objectAutoLoad($objecttype, &$db)
+	public static function objectAutoLoad($objectType, &$db)
 	{
 		global $conf, $langs;
 
@@ -742,16 +870,16 @@ class AdvancedProductSearch
 		$regs = array();
 
 		// Parse $objecttype (ex: project_task)
-		$module = $myobject = $objecttype;
+		$module = $myobject = $objectType;
 
 		// If we ask an resource form external module (instead of default path)
-		if (preg_match('/^([^@]+)@([^@]+)$/i', $objecttype, $regs)) {
+		if (preg_match('/^([^@]+)@([^@]+)$/i', $objectType, $regs)) {
 			$myobject = $regs[1];
 			$module = $regs[2];
 		}
 
 
-		if (preg_match('/^([^_]+)_([^_]+)/i', $objecttype, $regs))
+		if (preg_match('/^([^_]+)_([^_]+)/i', $objectType, $regs))
 		{
 			$module = $regs[1];
 			$myobject = $regs[2];
@@ -761,65 +889,65 @@ class AdvancedProductSearch
 		$classpath = $module.'/class';
 
 		// Special cases, to work with non standard path
-		if ($objecttype == 'facture' || $objecttype == 'invoice') {
+		if ($objectType == 'facture' || $objectType == 'invoice') {
 			$classpath = 'compta/facture/class';
 			$module='facture';
 			$myobject='facture';
 		}
-		elseif ($objecttype == 'commande' || $objecttype == 'order') {
+		elseif ($objectType == 'commande' || $objectType == 'order') {
 			$classpath = 'commande/class';
 			$module='commande';
 			$myobject='commande';
 		}
-		elseif ($objecttype == 'propal')  {
+		elseif ($objectType == 'propal')  {
 			$classpath = 'comm/propal/class';
 		}
-		elseif ($objecttype == 'shipping') {
+		elseif ($objectType == 'shipping') {
 			$classpath = 'expedition/class';
 			$myobject = 'expedition';
 			$module = 'expedition_bon';
 		}
-		elseif ($objecttype == 'delivery') {
+		elseif ($objectType == 'delivery') {
 			$classpath = 'livraison/class';
 			$myobject = 'livraison';
 			$module = 'livraison_bon';
 		}
-		elseif ($objecttype == 'contract') {
+		elseif ($objectType == 'contract') {
 			$classpath = 'contrat/class';
 			$module='contrat';
 			$myobject='contrat';
 		}
-		elseif ($objecttype == 'member') {
+		elseif ($objectType == 'member') {
 			$classpath = 'adherents/class';
 			$module='adherent';
 			$myobject='adherent';
 		}
-		elseif ($objecttype == 'cabinetmed_cons') {
+		elseif ($objectType == 'cabinetmed_cons') {
 			$classpath = 'cabinetmed/class';
 			$module='cabinetmed';
 			$myobject='cabinetmedcons';
 		}
-		elseif ($objecttype == 'fichinter') {
+		elseif ($objectType == 'fichinter') {
 			$classpath = 'fichinter/class';
 			$module='ficheinter';
 			$myobject='fichinter';
 		}
-		elseif ($objecttype == 'task') {
+		elseif ($objectType == 'task') {
 			$classpath = 'projet/class';
 			$module='projet';
 			$myobject='task';
 		}
-		elseif ($objecttype == 'stock') {
+		elseif ($objectType == 'stock') {
 			$classpath = 'product/stock/class';
 			$module='stock';
 			$myobject='stock';
 		}
-		elseif ($objecttype == 'inventory') {
+		elseif ($objectType == 'inventory') {
 			$classpath = 'product/inventory/class';
 			$module='stock';
 			$myobject='inventory';
 		}
-		elseif ($objecttype == 'mo') {
+		elseif ($objectType == 'mo') {
 			$classpath = 'mrp/class';
 			$module='mrp';
 			$myobject='mo';
@@ -829,30 +957,30 @@ class AdvancedProductSearch
 		$classfile = strtolower($myobject); $classname = ucfirst($myobject);
 		//print "objecttype=".$objecttype." module=".$module." subelement=".$subelement." classfile=".$classfile." classname=".$classname;
 
-		if ($objecttype == 'invoice_supplier') {
+		if ($objectType == 'invoice_supplier') {
 			$classfile = 'fournisseur.facture';
 			$classname = 'FactureFournisseur';
 			$classpath = 'fourn/class';
 			$module = 'fournisseur';
 		}
-		elseif ($objecttype == 'order_supplier') {
+		elseif ($objectType == 'order_supplier') {
 			$classfile = 'fournisseur.commande';
 			$classname = 'CommandeFournisseur';
 			$classpath = 'fourn/class';
 			$module = 'fournisseur';
 		}
-		elseif ($objecttype == 'supplier_proposal') {
+		elseif ($objectType == 'supplier_proposal') {
 			$classpath = 'supplier_proposal/class';
 			$classfile = 'supplier_proposal';
 			$classname = 'SupplierProposal';
 			$module = 'supplier_proposal';
 		}
-		elseif ($objecttype == 'stock') {
+		elseif ($objectType == 'stock') {
 			$classpath = 'product/stock/class';
 			$classfile = 'entrepot';
 			$classname = 'Entrepot';
 		}
-		elseif ($objecttype == 'dolresource') {
+		elseif ($objectType == 'dolresource') {
 			$classpath = 'resource/class';
 			$classfile = 'dolresource';
 			$classname = 'Dolresource';
@@ -984,16 +1112,16 @@ class AdvancedProductSearch
 			if ($societe) {
 				$TSellPrice = $product->getSellPrice($mysoc, $societe);
 				if (!empty($TSellPrice)) {
-					$baseSubprice = $TSellPrice['pu_ht'];
+					$baseSubPrice = $TSellPrice['pu_ht'];
 				}
 			}
 
 			// si pas de prix client alors on force sur le prix de la fiche produit
-			if (empty($baseSubprice)) {
-				$baseSubprice = $product->price;
+			if (empty($baseSubPrice)) {
+				$baseSubPrice = $product->price;
 			}
 
-			return round($baseSubprice, getDolGlobalString('MAIN_MAX_DECIMALS_UNIT'));
+			return round(floatval($baseSubPrice), getDolGlobalString('MAIN_MAX_DECIMALS_UNIT'));
 		}
 
 		return false;

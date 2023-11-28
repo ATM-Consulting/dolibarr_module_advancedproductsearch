@@ -17,6 +17,41 @@ jQuery(function ($) {
 		AdvancedProductSearch.discountLoadSearchProductDialogForm("&"+urlParams);
 	});
 
+	let ctrlPressed = false; //Variable to check if the the first button is pressed at this exact moment
+	$(document).keydown(function(e) {
+		if (e.ctrlKey) { //If it's ctrl key
+			ctrlPressed = true; //Set variable to true
+		}
+	}).keyup(function(e) { //If user releases ctrl button
+		if (e.ctrlKey) {
+			ctrlPressed = false; //Set it to false
+		}
+	}); //This way you know if ctrl key is pressed. You can change e.ctrlKey to any other key code you want
+
+	$(document).keydown(function(e) { //For any other keypress event
+		if (e.which == 39) { //Checking if it's right button
+			if(ctrlPressed == true){ //If it's space, check if ctrl key is also pressed
+				if($('.paginationnext')){
+					$('.paginationnext').trigger("click");
+				}
+				ctrlPressed = false; //Important! Set ctrlPressed variable to false. Otherwise the code will work everytime you press the space button again
+			}
+		}
+	})
+
+
+	$(document).keydown(function(e) { //For any other keypress event
+		if (e.which == 37) { //Checking if it's left button
+			if(ctrlPressed == true){ //If it's space, check if ctrl key is also pressed
+				if($('.paginationprevious')){
+					$('.paginationprevious').trigger("click");
+				}
+				ctrlPressed = false; //Important! Set ctrlPressed variable to false. Otherwise the code will work everytime you press the space button again
+			}
+		}
+	})
+
+
 	//_________________________________________________
 	// RECHERCHE GLOBALE AUTOMATIQUE SUR FIN DE SAISIE
 	// (Uniquement sur la recherche globale)
@@ -24,12 +59,14 @@ jQuery(function ($) {
 	//setup before functions
 	var typingProductSearchTimer;                //timer identifier
 	var doneTypingProductSearchInterval = 2000;  //time in ms (2 seconds)
+	var typingProductSearchLastValue = '';
 
 	$(document).on("keyup", "#search-all-form-input" , function(event) {
 		clearTimeout(typingProductSearchTimer);
-		if ($('#search-all-form-input').val()) {
+		if ($('#search-all-form-input').val() != typingProductSearchLastValue) {
+			typingProductSearchLastValue = $('#search-all-form-input').val();
 			typingProductSearchTimer = setTimeout(function(){
-				AdvancedProductSearch.discountLoadSearchProductDialogForm("&"+$( "#product-search-dialog-form" ).serialize());
+				AdvancedProductSearch.discountLoadSearchProductDialogForm("&"+$( "#product-search-dialog-form" ).serialize(), true);
 			}, doneTypingProductSearchInterval);
 		}
 	});
@@ -82,15 +119,16 @@ jQuery(function ($) {
 	$(document).on("click", '#product-search-dialog-button', function(event) {
 		event.preventDefault();
 
-		var element = $(this).attr('data-target-element');
-		var fk_element = $(this).attr('data-target-id');
+		let element = $(this).attr('data-target-element');
+		let fk_element = $(this).attr('data-target-id');
+		let search_idprod = $('#search_idprod').val();
 
-		var productSearchDialogBox = "product-search-dialog-box";
+		let productSearchDialogBox = "product-search-dialog-box";
 		// crée le calque qui sera convertie en popup
 		$('body').append('<div id="'+productSearchDialogBox+'" title="' + AdvancedProductSearch.discountlang.SearchProduct + '"></div>');
 
 		// transforme le calque en popup
-		var popup = $('#'+productSearchDialogBox).dialog({
+		$('#'+productSearchDialogBox).dialog({
 			autoOpen: true,
 			modal: true,
 			width: Math.min($( window ).width() - 50, 1700),
@@ -124,7 +162,7 @@ jQuery(function ($) {
 				AdvancedProductSearch.element = element;
 				AdvancedProductSearch.fk_element = fk_element;
 
-				AdvancedProductSearch.discountLoadSearchProductDialogForm("&element="+element+"&fk_element="+fk_element);
+				AdvancedProductSearch.discountLoadSearchProductDialogForm("&element="+element+"&fk_element="+fk_element+"&displayResults=0&sall=" + search_idprod, true);
 				$('#'+productSearchDialogBox).parent().css('z-index', 1002);
 				$('.ui-widget-overlay').css('z-index', 1001);
 			}
@@ -168,7 +206,7 @@ jQuery(function ($) {
 (function ( $ ) {
 	$.fn.addClassReload = function(className) {
 		return this.each(function() {
-			var $element = $(this);
+			let $element = $(this);
 			// Do something to each element here.
 			$element.removeClass(className).width;
 			setTimeout(function(){ $element.addClass(className); }, 0);
@@ -218,7 +256,7 @@ AdvancedProductSearch = {};
 	 *
 	 * @param $morefilters
 	 */
-	o.discountLoadSearchProductDialogForm = function (morefilters = ''){
+	o.discountLoadSearchProductDialogForm = function (morefilters = '', focus = false){
 
 		$('#'+o.productSearchDialogBox).addClass('--ajax-loading');
 
@@ -226,7 +264,10 @@ AdvancedProductSearch = {};
 
 		$('#'+o.productSearchDialogBox).load( o.config.interface_url + '?action=product-search-form' + morefilters, function() {
 			o.dialogCountAddedProduct = 0; // init count of product added for reload action
-			o.focusAtEndSearchInput($("#search-all-form-input"));
+			if(focus){
+				o.focusAtEndSearchInput($("#search-all-form-input"));
+			}
+
 			o.GetNewToken();
 
 			if($('#'+o.productSearchDialogBox).outerHeight() >= $( window ).height()-150 ){
