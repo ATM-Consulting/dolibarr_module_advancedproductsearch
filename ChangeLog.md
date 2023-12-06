@@ -3,11 +3,12 @@
 
 # NOT RELEASED
 
-- FIX : User experience - *25/11/2023* - 1.4.1
-- NEW : Factoring and improve speed - *08/08/2022* - 1.4.0
+
 - NEW : Compat V19 et php 8.2 *04/12/2023* - 1.5.0  
     Changed Dolibarr compatibility range to 12 min - 19 max  
     Change PHP compatibility range to 7.0 min - 8.2 max
+- FIX : User experience - *25/11/2023* - 1.4.1
+- NEW : Factoring and improve speed - *08/08/2022* - 1.4.0
 
 
 ## 1.3
