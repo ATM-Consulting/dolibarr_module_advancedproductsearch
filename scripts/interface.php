@@ -97,8 +97,7 @@ if ($action === 'add-product') {
 
 				if(is_callable(array($object, 'addline'))) {
 
-					$desc = $product->description;
-
+					$desc = AdvancedProductSearch::modifyProductDescription($product);
 
 					$validated = true; // init validation of  data
 
