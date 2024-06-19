@@ -1155,7 +1155,7 @@ class AdvancedProductSearch
 	/**
 	 * get final product description by adding custom code and country of origin if applicable.
 	 *
-	 * This function updates the product description by appending the custom code and country of origin
+	 * This function return the product description by appending the custom code and country of origin
 	 * if the global configuration allows it and the product has these attributes.
 	 *
 	 * @global object $langs  The language object for translations.
