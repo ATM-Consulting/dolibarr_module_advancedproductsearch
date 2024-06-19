@@ -1152,7 +1152,7 @@ class AdvancedProductSearch
 		return $content; // return highlighted data
 	}
 
-	public static function modifyProductDescription($product)
+	public static function getFinalProductDescriptionForLine($product)
 	{
 		global $langs, $db;
 
