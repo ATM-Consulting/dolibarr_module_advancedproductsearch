@@ -1155,6 +1155,8 @@ class AdvancedProductSearch
 	public static function modifyProductDescription($product)
 	{
 		global $langs, $db;
+
+		$desc = $product->description;
 		if (empty($conf->global->MAIN_PRODUCT_DISABLE_CUSTOMCOUNTRYCODE)
 			&& (!empty($product->customcode) || !empty($product->country_code))) {
 
@@ -1164,13 +1166,13 @@ class AdvancedProductSearch
 				$langs->transnoentitiesnoconv("CustomCode") . ': ' .
 				$product->customcode . ' - ' .
 				$langs->transnoentitiesnoconv("CountryOrigin") . ': ' .
-				self::getCountry($product->country_code, $db, $langs) .
+				getCountry($product->country_code, 0, $db, $langs, 0) .
 				')';
 
-			$product->description = self::dol_concatdesc($product->description, $desc_tmp);
+			$desc = dol_concatdesc($desc, $desc_tmp);
 		}
 
-		return $product->description;
+		return $desc;
 	}
 
 }
