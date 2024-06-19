@@ -1152,7 +1152,18 @@ class AdvancedProductSearch
 		return $content; // return highlighted data
 	}
 
-	public static function modifyProductDescription($product)
+	/**
+	 * get final product description by adding custom code and country of origin if applicable.
+	 *
+	 * This function updates the product description by appending the custom code and country of origin
+	 * if the global configuration allows it and the product has these attributes.
+	 *
+	 * @global object $langs  The language object for translations.
+	 * @global object $db     The database object.
+	 * @param object $product The product object which contains the description, custom code, and country code.
+	 * @return string The modified product description.
+	 */
+	public static function getFinalProductDescriptionForLine($product)
 	{
 		global $langs, $db;
 
