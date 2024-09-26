@@ -146,7 +146,8 @@ class ActionsAdvancedProductSearch extends \advancedproductsearch\RetroCompatCom
 				'MAIN_MAX_DECIMALS_UNIT' => getDolGlobalString('MAIN_MAX_DECIMALS_UNIT') ,
 				'interface_url' => dol_buildpath('advancedproductsearch/scripts/interface.php',1),
 				'js_url' => dol_buildpath('advancedproductsearch/js/advancedproductsearch.js',1),
-				'supplierElements' => $AdvancedProductSearch->supplierElements
+				'supplierElements' => $AdvancedProductSearch->supplierElements,
+				'displayResultsOnOpen' => getDolGlobalInt('APS_NO_DISPLAY_RESULTS_ON_OPEN') ? 0 : 1
 			);
 
 			?>
