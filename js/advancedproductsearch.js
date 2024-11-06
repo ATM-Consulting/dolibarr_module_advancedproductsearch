@@ -198,7 +198,8 @@ jQuery(function ($) {
 				AdvancedProductSearch.fk_element = fk_element;
 				AdvancedProductSearch.newToken = token;
 
-				AdvancedProductSearch.discountLoadSearchProductDialogForm("&element="+element+"&fk_element="+fk_element+"&displayResults=0&sall=" + search_idprod, true);
+				let displayResult = search_idprod.length > 0 ? 1 : AdvancedProductSearch.config.displayResultsOnOpen;
+				AdvancedProductSearch.discountLoadSearchProductDialogForm('&element=' + element + '&fk_element=' + fk_element + '&displayResults=' + displayResult + '&sall=' + search_idprod, true);
 				$('#'+productSearchDialogBox).parent().css('z-index', 1002);
 				$('.ui-widget-overlay').css('z-index', 1001);
 			}
@@ -275,6 +276,7 @@ AdvancedProductSearch = {};
 		"MAIN_MAX_DECIMALS_UNIT":5,
 		"interface_url":"advancedproductsearch\/scripts\/interface.php",
 		"js_url":"advancedproductsearch\/js\/advancedproductsearch.js",
+		'displayResultsOnOpen': 0,
 		"supplierElements":[
 			"supplier_proposal",
 			"order_supplier",
@@ -583,17 +585,21 @@ AdvancedProductSearch = {};
 			url: urlInterface,
 			dataType: 'json',
 			data: sendData,
-			success: function (data) {
-				if(data.result) {
-					// do stuff on success
+			success: function (response) {
+				if(response.result) {
+					// update displayed product line of search dialog
+					if(typeof response.data.newTotalQtyForProduct != undefined) {
+						let qtyTargetBadge = $('.advanced-product-search__badge-qty-doc[data-product=' + fk_product + ']');
+						qtyTargetBadge.text(response.data.newTotalQtyForProduct);
+					}
 				}
 				else {
 					// do stuff on error
 				}
-				o.newToken = data.newToken;
+				o.newToken = response.newToken;
 				o.dialogCountAddedProduct++; // indique qu'il faudra un rechargement de page à la fermeture de la dialogbox
 				o.focusAtEndSearchInput($("#search-all-form-input")); // on replace le focus sur la recherche global pour augmenter la productivité
-				o.setEventMessage(data.msg, data.result);
+				o.setEventMessage(response.msg, response.result);
 				// re-enable action button
 				o.disableAddProductFields(fk_product, false);
 			},
