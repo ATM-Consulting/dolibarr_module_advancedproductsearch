@@ -3,7 +3,9 @@
 
 # NOT RELEASED
 
-
+- NEW : Add hooks for list - **12/09/2024** - 1.10.0
+- NEW : Display qty of current document  - **12/09/2024** - 1.9.0
+- NEW : Setup conf for default search behavior  - **12/09/2024** - 1.8.0
 
 ## Release 1.7
 - FIX : DA025694 - Fatal sur pop-in de recherche quand le prix d'achat = 0. - **06/11/2024** - 1.7.1

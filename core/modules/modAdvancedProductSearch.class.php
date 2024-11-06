@@ -72,7 +72,9 @@ class modAdvancedProductSearch extends DolibarrModules
 		$this->editor_url = 'https://www.atm-consulting.fr';
 
 		// Possible values for version are: 'development', 'experimental', 'dolibarr', 'dolibarr_deprecated' or a version string like 'x.y.z'
-		$this->version = '1.7.1';
+
+		$this->version = '1.10.0';
+
 		// Url to the file with your last numberversion of this module
 		//$this->url_last_version = 'http://www.example.com/versionmodule.txt';
 
@@ -131,7 +133,7 @@ class modAdvancedProductSearch extends DolibarrModules
 		$this->dirs = array("/advancedproductsearch/temp");
 
 		// Config pages. Put here list of php page, stored into advancedproductsearch/admin directory, to use to setup module.
-		$this->config_page_url = array();//"setup.php@advancedproductsearch"
+		$this->config_page_url = array("setup.php@advancedproductsearch");
 
 		// Dependencies
 		// A condition to hide module
