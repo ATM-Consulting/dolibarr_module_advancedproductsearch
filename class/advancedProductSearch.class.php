@@ -890,6 +890,10 @@ class AdvancedProductSearch
 		$output.= '</table>';
 		$output.= '</form>';
 
+		// add hook for external modules
+		$hookmanager->executeHooks('adpsSearchComplete', $hookParam, $object, $action); // Note that $action and $object may have been modified by hook
+		$output .= $hookmanager->resPrint;
+
 		return $output;
 	}
 
