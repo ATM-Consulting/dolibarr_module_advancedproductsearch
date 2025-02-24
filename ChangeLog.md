@@ -16,6 +16,7 @@
   Changed Dolibarr compatibility range to 16 min - 20 max - **01/08/2024** - 1.6.0
 
 ## Release 1.5
+- FIX : DA026141 - Slash char was not escaped, making preg_replace to return null - **2025-02-24** - 1.5.6
 - FIX : Rend le code propre du FIX 1.5.4 - **19/06/2024** - 1.5.5
 - FIX : DA025087 - L'origine et la nomenclature douanière du produit ne sont pas ajoutés à la description - **17/06/2024** - 1.5.4
 - FIX : DA024805 - Mauvaise définition des droits fournisseurs - **16/04/2024** - 1.5.3
