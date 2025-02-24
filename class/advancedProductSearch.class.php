@@ -602,7 +602,6 @@ class AdvancedProductSearch
 			.$db->plimit($this->search['limit'] + 1, $this->search['offset']);
 
 		if($this->displayResults) {
-
 			$querySearchRes = $db->query($this->searchSqlList);
 
 			if ($querySearchRes) {
@@ -1154,6 +1153,8 @@ class AdvancedProductSearch
 		$needle = str_replace('i', '[íîìï]', $needle);
 		$needle = str_replace('o', '[óôòøõö]', $needle);
 		$needle = str_replace('u', '[úûùü]', $needle);
+
+		$needle = preg_quote($needle, '/');
 
 		return preg_replace("/($needle)/iu", sprintf('<span style="background-color: %s; color:%s;">$1</span>', $backgroundColor, $color), $haystack);
 	}
