@@ -309,46 +309,63 @@ AdvancedProductSearch = {};
 	 * @param dataToSend les données à envoyer (objet ou chaîne sérialisée)
 	 * @param focus si le focus doit être appliqué
 	 */
-	o.discountLoadSearchProductDialogForm = function (dataToSend = {}, focus = false){
+	o.discountLoadSearchProductDialogForm = function (dataToSend = {}, focus = false) {
 
-		$('#'+o.productSearchDialogBox).addClass('--ajax-loading');
+		// Add a class to apply loading state styles to the dialog.
+		$('#' + o.productSearchDialogBox).addClass('--ajax-loading');
 
-		$('#'+o.productSearchDialogBox).prepend($('<div class="inner-dialog-overlay"><div class="dialog-loading__loading"><div class="dialog-loading__spinner-wrapper"><span class="dialog-loading__spinner-text">LOADING</span><span class="dialog-loading__spinner"></span></div></div></div>'));
+		// Display a loading spinner overlay for immediate user feedback.
+		$('#' + o.productSearchDialogBox).prepend($('<div class="inner-dialog-overlay"><div class="dialog-loading__loading"><div class="dialog-loading__spinner-wrapper"><span class="dialog-loading__spinner-text">LOADING</span><span class="dialog-loading__spinner"></span></div></div></div>'));
 
-		// Ajout du token aux données
+		// Append the security token to the request data.
 		if (typeof dataToSend === 'string') {
 			dataToSend += '&token=' + o.newToken;
 		} else {
 			dataToSend.token = o.newToken;
 		}
 
-		// Utilisation de $.ajax pour spécifier la méthode POST et les données
+		// Perform an asynchronous HTTP request to fetch the form.
 		$.ajax({
-			method: "POST", // Spécifie la méthode POST
-			url: o.config.interface_url + '?action=product-search-form', // L'URL ne contient plus les données du formulaire
-			data: dataToSend, // Les données sont passées dans le corps de la requête
+			// Use the POST method to send data.
+			method: "POST",
+			// Set the target endpoint URL.
+			url: o.config.interface_url + '?action=product-search-form',
+			// Pass the form data in the request body.
+			data: dataToSend,
+			// Callback function executed on a successful request.
 			success: function(response) {
-				$('#'+o.productSearchDialogBox).html(response); // Met à jour le contenu de la boîte de dialogue avec la réponse
-				o.dialogCountAddedProduct = 0; // init count of product added for reload action
-				if(focus){
+				// Replace the dialog's content with the server's HTML response.
+				$('#' + o.productSearchDialogBox).html(response);
+				// Reset the counter for newly added products.
+				o.dialogCountAddedProduct = 0;
+				// Set focus on the search input if requested.
+				if (focus) {
 					o.focusAtEndSearchInput($("#search-all-form-input"));
 				}
 
-				if($('#'+o.productSearchDialogBox).outerHeight() >= $( window ).height()-150 ){
-					$('#'+o.productSearchDialogBox).dialog( "option", "position", { my: "top", at: "top", of: window } ); // Hack to position the dialog box after ajax load
-				}
-				else{
-					$('#'+o.productSearchDialogBox).dialog( "option", "position", { my: "center", at: "center", of: window } ); // Hack to center vertical the dialog box after ajax load
+				// Reposition the dialog to ensure it fits within the viewport after loading new content.
+				if ($('#' + o.productSearchDialogBox).outerHeight() >= $(window).height() - 150) {
+					// If the dialog is too tall, align it to the top.
+					$('#' + o.productSearchDialogBox).dialog("option", "position", { my: "top", at: "top", of: window });
+				} else {
+					// Otherwise, center it vertically.
+					$('#' + o.productSearchDialogBox).dialog("option", "position", { my: "center", at: "center", of: window });
 				}
 
-				o.initToolTip($('#'+o.productSearchDialogBox+' .classfortooltip')); // restore tooltip after ajax call
-				$('#'+o.productSearchDialogBox).removeClass('--ajax-loading');
+				// Re-initialize tooltips on the newly loaded content.
+				o.initToolTip($('#' + o.productSearchDialogBox + ' .classfortooltip'));
+				// Remove the loading state class.
+				$('#' + o.productSearchDialogBox).removeClass('--ajax-loading');
 			},
+			// Callback function executed on a failed request.
 			error: function(xhr, status, error) {
-				console.error("Erreur AJAX lors du chargement du formulaire de recherche :", error);
+				// Log the error to the console for debugging.
+				console.error("AJAX error while loading search form:", error);
+				// Display a user-friendly error message.
 				o.setEventMessage(o.discountlang.errorAjaxCall, false);
-				$('#'+o.productSearchDialogBox).removeClass('--ajax-loading');
-				$('#'+o.productSearchDialogBox + ' .inner-dialog-overlay').remove(); // Supprime l'overlay de chargement en cas d'erreur
+				// Clean up the UI by removing the loading state and overlay.
+				$('#' + o.productSearchDialogBox).removeClass('--ajax-loading');
+				$('#' + o.productSearchDialogBox + ' .inner-dialog-overlay').remove();
 			}
 		});
 	}
