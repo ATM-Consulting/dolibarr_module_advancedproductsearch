@@ -7,14 +7,23 @@ jQuery(function ($) {
 	/****************************************************************/
 	$(document).on("submit", "#product-search-dialog-form" , function(event) {
 		event.preventDefault();
-		AdvancedProductSearch.discountLoadSearchProductDialogForm("&"+$( this ).serialize());
+
+		AdvancedProductSearch.discountLoadSearchProductDialogForm($(this).serialize());
 	});
 
 	// Pagination
 	$(document).on("click", "#product-search-dialog-form .pagination a, #product-search-dialog-form .advanced-product-search-sort-link" , function(event) {
 		event.preventDefault();
 		let urlParams = $(this).attr('href').split('?')[1];
-		AdvancedProductSearch.discountLoadSearchProductDialogForm("&"+urlParams);
+
+		let data = {};
+		if (urlParams) {
+			urlParams.split('&').forEach(function(param) {
+				let parts = param.split('=');
+				data[parts[0]] = parts[1] ? decodeURIComponent(parts[1].replace(/\+/g, ' ')) : '';
+			});
+		}
+		AdvancedProductSearch.discountLoadSearchProductDialogForm(data);
 	});
 
 	let ctrlPressed = false; //Variable to check if the the first button is pressed at this exact moment
@@ -66,7 +75,8 @@ jQuery(function ($) {
 		if ($('#search-all-form-input').val() != typingProductSearchLastValue) {
 			typingProductSearchLastValue = $('#search-all-form-input').val();
 			typingProductSearchTimer = setTimeout(function(){
-				AdvancedProductSearch.discountLoadSearchProductDialogForm("&"+$( "#product-search-dialog-form" ).serialize(), true);
+
+				AdvancedProductSearch.discountLoadSearchProductDialogForm($( "#product-search-dialog-form" ).serialize(), true);
 			}, doneTypingProductSearchInterval);
 		}
 	});
@@ -198,7 +208,13 @@ jQuery(function ($) {
 				AdvancedProductSearch.fk_element = fk_element;
 				AdvancedProductSearch.newToken = token;
 
-				AdvancedProductSearch.discountLoadSearchProductDialogForm("&element="+element+"&fk_element="+fk_element+"&displayResults=0&sall=" + search_idprod, true);
+				let initialData = {
+					element: element,
+					fk_element: fk_element,
+					displayResults: 0,
+					sall: search_idprod
+				};
+				AdvancedProductSearch.discountLoadSearchProductDialogForm(initialData, true);
 				$('#'+productSearchDialogBox).parent().css('z-index', 1002);
 				$('.ui-widget-overlay').css('z-index', 1001);
 			}
@@ -207,7 +223,7 @@ jQuery(function ($) {
 
 
 	/****************************************************************/
-	/*               Compatibilité avec discount rules              */
+	/* Compatibilité avec discount rules              */
 	/****************************************************************/
 
 	// Recherche de remise sur modification des quantités
@@ -290,29 +306,67 @@ AdvancedProductSearch = {};
 	/**
 	 * Load product search dialog form
 	 *
-	 * @param $morefilters
+	 * @param dataToSend les données à envoyer (objet ou chaîne sérialisée)
+	 * @param focus si le focus doit être appliqué
 	 */
-	o.discountLoadSearchProductDialogForm = function (morefilters = '', focus = false){
+	o.discountLoadSearchProductDialogForm = function (dataToSend = {}, focus = false) {
 
-		$('#'+o.productSearchDialogBox).addClass('--ajax-loading');
+		// Add a class to apply loading state styles to the dialog.
+		$('#' + o.productSearchDialogBox).addClass('--ajax-loading');
 
-		$('#'+o.productSearchDialogBox).prepend($('<div class="inner-dialog-overlay"><div class="dialog-loading__loading"><div class="dialog-loading__spinner-wrapper"><span class="dialog-loading__spinner-text">LOADING</span><span class="dialog-loading__spinner"></span></div></div></div>'));
+		// Display a loading spinner overlay for immediate user feedback.
+		$('#' + o.productSearchDialogBox).prepend($('<div class="inner-dialog-overlay"><div class="dialog-loading__loading"><div class="dialog-loading__spinner-wrapper"><span class="dialog-loading__spinner-text">LOADING</span><span class="dialog-loading__spinner"></span></div></div></div>'));
 
-		$('#'+o.productSearchDialogBox).load( o.config.interface_url + '?action=product-search-form&token=' + o.newToken + morefilters, function() {
-			o.dialogCountAddedProduct = 0; // init count of product added for reload action
-			if(focus){
-				o.focusAtEndSearchInput($("#search-all-form-input"));
+		// Append the security token to the request data.
+		if (typeof dataToSend === 'string') {
+			dataToSend += '&token=' + o.newToken;
+		} else {
+			dataToSend.token = o.newToken;
+		}
+
+		// Perform an asynchronous HTTP request to fetch the form.
+		$.ajax({
+			// Use the POST method to send data.
+			method: "POST",
+			// Set the target endpoint URL.
+			url: o.config.interface_url + '?action=product-search-form',
+			// Pass the form data in the request body.
+			data: dataToSend,
+			// Callback function executed on a successful request.
+			success: function(response) {
+				// Replace the dialog's content with the server's HTML response.
+				$('#' + o.productSearchDialogBox).html(response);
+				// Reset the counter for newly added products.
+				o.dialogCountAddedProduct = 0;
+				// Set focus on the search input if requested.
+				if (focus) {
+					o.focusAtEndSearchInput($("#search-all-form-input"));
+				}
+
+				// Reposition the dialog to ensure it fits within the viewport after loading new content.
+				if ($('#' + o.productSearchDialogBox).outerHeight() >= $(window).height() - 150) {
+					// If the dialog is too tall, align it to the top.
+					$('#' + o.productSearchDialogBox).dialog("option", "position", { my: "top", at: "top", of: window });
+				} else {
+					// Otherwise, center it vertically.
+					$('#' + o.productSearchDialogBox).dialog("option", "position", { my: "center", at: "center", of: window });
+				}
+
+				// Re-initialize tooltips on the newly loaded content.
+				o.initToolTip($('#' + o.productSearchDialogBox + ' .classfortooltip'));
+				// Remove the loading state class.
+				$('#' + o.productSearchDialogBox).removeClass('--ajax-loading');
+			},
+			// Callback function executed on a failed request.
+			error: function(xhr, status, error) {
+				// Log the error to the console for debugging.
+				console.error("AJAX error while loading search form:", error);
+				// Display a user-friendly error message.
+				o.setEventMessage(o.discountlang.errorAjaxCall, false);
+				// Clean up the UI by removing the loading state and overlay.
+				$('#' + o.productSearchDialogBox).removeClass('--ajax-loading');
+				$('#' + o.productSearchDialogBox + ' .inner-dialog-overlay').remove();
 			}
-
-			if($('#'+o.productSearchDialogBox).outerHeight() >= $( window ).height()-150 ){
-				$('#'+o.productSearchDialogBox).dialog( "option", "position", { my: "top", at: "top", of: window } ); // Hack to position the dialog box after ajax load
-			}
-			else{
-				$('#'+o.productSearchDialogBox).dialog( "option", "position", { my: "center", at: "center", of: window } ); // Hack to center vertical the dialog box after ajax load
-			}
-
-			o.initToolTip($('#'+o.productSearchDialogBox+' .classfortooltip')); // restore tooltip after ajax call
-			$('#'+o.productSearchDialogBox).removeClass('--ajax-loading');
 		});
 	}
 
@@ -342,7 +396,7 @@ AdvancedProductSearch = {};
 				hide: { delay: 50 },
 				tooltipClass: "mytooltip",
 				content: function () {
-					return $(this).prop("title");		/* To force to get title as is */
+					return $(this).prop("title");     /* To force to get title as is */
 				}
 			});
 		}
@@ -466,7 +520,7 @@ AdvancedProductSearch = {};
 
 		var inputElement = $('#buying_price_adv');
 		var inputValue = inputElement.val(); // Récupérer la valeur de l'input
- 		var costPrice = 0;
+		var costPrice = 0;
 
 		if (!inputElement.hasClass('hideobject')) {
 			costPrice = inputValue;

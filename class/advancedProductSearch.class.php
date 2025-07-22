@@ -1118,15 +1118,17 @@ class AdvancedProductSearch
 
 			$logs = $producttmp->list_product_fournisseur_price($producttmp->id, 'pfp.datec', 'DESC', 1);
 			// Récupère uniquement le premier résultat (le plus récent grâce à l'ordre DESC)
-			$log_recent = $logs[0];
-			$lastprice = $log_recent->fourn_price;
-			$prices[] = array(
-				"id" => 'lastprice',
-				"price" => price2num($lastprice),
-				"label" => $langs->trans("LastPrice").': '.price($lastprice, 0, $langs, 0, 0, -1, $conf->currency),
-				"title" => $langs->trans("LastPrice").': '.price($lastprice, 0, $langs, 0, 0, -1, $conf->currency),
-				'fourn_qty' => 0
-			);
+			if(!empty($logs)) {
+				$log_recent = $logs[0];
+				$lastprice = $log_recent->fourn_price;
+				$prices[] = array(
+					"id" => 'lastprice',
+					"price" => price2num($lastprice),
+					"label" => $langs->trans("LastPrice") . ': ' . price($lastprice, 0, $langs, 0, 0, -1, $conf->currency),
+					"title" => $langs->trans("LastPrice") . ': ' . price($lastprice, 0, $langs, 0, 0, -1, $conf->currency),
+					'fourn_qty' => 0
+				);
+			}
 
 			$prices[] = array(
 				"id" => 'inputprice',
