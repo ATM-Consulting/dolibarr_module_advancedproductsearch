@@ -655,7 +655,7 @@ class AdvancedProductSearch
 						$resProd = $product->fetch($obj->rowid);
 						if ($resProd > 0) {
 							$product->load_stock();
-
+							$idSelected = '';
 							// Réduction par défaut du client
 							$reduction = doubleval($object->thirdparty->remise_percent);
 							if ($isSupplier) {
@@ -694,7 +694,6 @@ class AdvancedProductSearch
 									setEventMessage($langs->trans('ErrorMissingModuleDiscountRule'));
 								}
 							}
-
 
 							$output .= '<tr class="advanced-product-search-row --data" data-product="' . $product->id . '"  >';
 							$output .= '<td class="advanced-product-search-col --ref" >' . $product->getNomUrl(1) . '</td>';
@@ -755,7 +754,21 @@ class AdvancedProductSearch
 										}
 									}
 
+									// --> DÉBUT DU CODE À AJOUTER
+									$lineAttributes = array(
+										'buyingPriceAdv' => array('readonly' => false),
+										'marginRate' => array('readonly' => false),
+										'productSubPrice' => array('readonly' => false),
+										'productReduction' => array('readonly' => false),
+										'productQty' => array('readonly' => false),
+										'productSupplierPrice' => array('selectedId' => $idSelected, 'disabled' => false)
+									);
+									$hookParameters['product'] = $product;
+									$hookParameters['search_context'] = $this->search;
+									$hookParameters['priceOptions'] = $this->searchSelectArray;
+									$hookmanager->executeHooks('advancedSearchAlterLineAttributes', $hookParameters, $lineAttributes, $action);
 
+									// <-- FIN DU CODE À AJOUTER
 									$key_in_label = 0;
 									$value_as_key = 0;
 									$moreparam = 'data-product="' . $product->id . '"';
@@ -766,14 +779,16 @@ class AdvancedProductSearch
 									$morecss = 'search-list-select';
 									$addjscombo = 0;
 									if (!empty($this->searchSelectArray)) {
-										$output .= $form->selectArray('prodfourprice-' . $product->id, $this->searchSelectArray, $idSelected, 0, $key_in_label, $value_as_key, $moreparam, $translate, $maxlen, $disabled, $this->searchSort, $morecss, $addjscombo);
+										// $output .= $form->selectArray('prodfourprice-' . $product->id, $this->searchSelectArray, $idSelected, 0, $key_in_label, $value_as_key, $moreparam, $translate, $maxlen, $disabled, $this->searchSort, $morecss, $addjscombo);
+										$output .= $form->selectArray('prodfourprice-' . $product->id, $this->searchSelectArray, $lineAttributes['productSupplierPrice']['selectedId'], 0, $key_in_label, $value_as_key, $moreparam, $translate, $maxlen, $lineAttributes['productSupplierPrice']['disabled'], $this->searchSort, $morecss, $addjscombo);
 									}
 //						$output.= '</div>';
 								} else {
 									$output .= price($product->pmp);
 								}
 								$output .= '<br/>';
-								$output .= '<input id="buying_price_adv"  type="number" step="any" min="0" maxlength="8" size="3" class="flat maxwidth75 right hideobject buying_price_adv on-update-calc-buyingprice" name="buying_price_adv_' . $product->id . '" value="0" data-product="' . $product->id . '">';
+								//$output .= '<input id="buying_price_adv"  type="number" step="any" min="0" maxlength="8" size="3" class="flat maxwidth75 right hideobject buying_price_adv on-update-calc-buyingprice" name="buying_price_adv_' . $product->id . '" value="0" data-product="' . $product->id . '">';
+								$output .= '<input id="buying_price_adv" '.($lineAttributes['buyingPriceAdv']['readonly'] ? 'readonly="readonly"' : '').' type="number" step="any" min="0" maxlength="8" size="3" class="flat maxwidth75 right hideobject buying_price_adv on-update-calc-buyingprice" name="buying_price_adv_' . $product->id . '" value="0" data-product="' . $product->id . '">';
 								$output .= '</td>';
 							}
 
@@ -790,19 +805,22 @@ class AdvancedProductSearch
 							}
 
 							$output .= '<td class="advanced-product-search-col --tauxmarque right nowraponall" >';
-							$output .= '<input id="advanced-product-search-list-input-tauxmarque-' . $product->id . '" data-product="' . $product->id . '"  class="right maxwidth40 on-update-calc-tauxmarque" type="number" step="any" min="0" maxlength="8" size="3" name="tauxmarque" value="'.round($tauxmarque, 2).'">';
+							//$output .= '<input id="advanced-product-search-list-input-tauxmarque-' . $product->id . '" data-product="' . $product->id . '"  class="right maxwidth40 on-update-calc-tauxmarque" type="number" step="any" min="0" maxlength="8" size="3" name="tauxmarque" value="'.round($tauxmarque, 2).'">';
+							$output .= '<input id="advanced-product-search-list-input-tauxmarque-' . $product->id . '" ' . ($lineAttributes['marginRate']['readonly'] ? 'readonly="readonly"' : '') . ' data-product="' . $product->id . '"  class="right maxwidth40 on-update-calc-tauxmarque" type="number" step="any" min="0" maxlength="8" size="3" name="tauxmarque" value="'.round($tauxmarque, 2).'">';
 							$output .= ' %';
 							$output .= '</td>';
 
 							// Prix
 							$output .= '<td class="advanced-product-search-col --subprice right nowraponall" >';
-							$output .= '<input id="advanced-product-search-list-input-subprice-' . $product->id . '"  data-product="' . $product->id . '"   class="advanced-product-search-list-input-subprice right on-update-calc-prices" type="number" step="any" min="0" maxlength="8" size="3" value="' . $this->searchubprice . '" placeholder="x" name="prodsubprice[' . $product->id . ']" />';
+							//$output .= '<input id="advanced-product-search-list-input-subprice-' . $product->id . '"  data-product="' . $product->id . '"   class="advanced-product-search-list-input-subprice right on-update-calc-prices" type="number" step="any" min="0" maxlength="8" size="3" value="' . $this->searchubprice . '" placeholder="x" name="prodsubprice[' . $product->id . ']" />';
+							$output .= '<input id="advanced-product-search-list-input-subprice-' . $product->id . '" ' . ($lineAttributes['productSubPrice']['readonly'] ? 'readonly="readonly"' : '') . ' data-product="' . $product->id . '"   class="advanced-product-search-list-input-subprice right on-update-calc-prices" type="number" step="any" min="0" maxlength="8" size="3" value="' . $this->searchubprice . '" placeholder="x" name="prodsubprice[' . $product->id . ']" />';
 							$output .= ' ' . $langs->trans("HT");
 							$output .= '</td>';
 
 							// REDUCTION EN %
 							$output .= '<td class="advanced-product-search-col --discount center" >';
-							$output .= '<input id="advanced-product-search-list-input-reduction-' . $product->id . '"  data-product="' . $product->id . '"   class="advanced-product-search-list-input-reduction center on-update-calc-prices" type="number" step="any" min="0" max="100" maxlength="3" size="3" value="' . $reduction . '" placeholder="%" name="prodreduction[' . $product->id . ']" />';
+							//$output .= '<input id="advanced-product-search-list-input-reduction-' . $product->id . '"  data-product="' . $product->id . '"   class="advanced-product-search-list-input-reduction center on-update-calc-prices" type="number" step="any" min="0" max="100" maxlength="3" size="3" value="' . $reduction . '" placeholder="%" name="prodreduction[' . $product->id . ']" />';
+							$output .= '<input id="advanced-product-search-list-input-reduction-' . $product->id . '" ' . ($lineAttributes['productReduction']['readonly'] ? 'readonly="readonly"' : '') . ' data-product="' . $product->id . '"   class="advanced-product-search-list-input-reduction center on-update-calc-prices" type="number" step="any" min="0" max="100" maxlength="3" size="3" value="' . $reduction . '" placeholder="%" name="prodreduction[' . $product->id . ']" />';
 							$output .= '%';
 							$output .= '</td>';
 
