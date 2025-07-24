@@ -755,14 +755,14 @@ class AdvancedProductSearch
 									}
 
 
-									$lineAttributes = array(
+									$lineAttributes = [
 										'buyingPriceAdv' => array('readonly' => false),
 										'marginRate' => array('readonly' => false),
 										'productSubPrice' => array('readonly' => false),
 										'productReduction' => array('readonly' => false),
 										'productQty' => array('readonly' => false),
 										'productSupplierPrice' => array('selectedId' => $idSelected, 'disabled' => false)
-									);
+									];
 									$hookParameters['product'] = $product;
 									$hookParameters['search_context'] = $this->search;
 									$hookParameters['priceOptions'] = $this->searchSelectArray;
