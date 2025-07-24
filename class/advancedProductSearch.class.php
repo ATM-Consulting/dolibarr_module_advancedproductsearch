@@ -779,7 +779,6 @@ class AdvancedProductSearch
 									$morecss = 'search-list-select';
 									$addjscombo = 0;
 									if (!empty($this->searchSelectArray)) {
-										// $output .= $form->selectArray('prodfourprice-' . $product->id, $this->searchSelectArray, $idSelected, 0, $key_in_label, $value_as_key, $moreparam, $translate, $maxlen, $disabled, $this->searchSort, $morecss, $addjscombo);
 										$output .= $form->selectArray('prodfourprice-' . $product->id, $this->searchSelectArray, $lineAttributes['productSupplierPrice']['selectedId'], 0, $key_in_label, $value_as_key, $moreparam, $translate, $maxlen, $lineAttributes['productSupplierPrice']['disabled'], $this->searchSort, $morecss, $addjscombo);
 									}
 //						$output.= '</div>';
