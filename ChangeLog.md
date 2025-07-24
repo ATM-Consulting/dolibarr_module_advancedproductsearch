@@ -2,6 +2,7 @@
 
 
 # NOT RELEASED
+- NEW : add new hook in advancedProductSearchForm to handle input behavior - *24/07/2025* - 1.11.0
 
 ## Release 1.10
 - FIX : COMPAT V22 - **03/04/2025** - 1.10.2
