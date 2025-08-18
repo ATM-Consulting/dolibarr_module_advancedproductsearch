@@ -30,7 +30,7 @@ ModuleAdvancedProductSearchDesc = Ajoute un nouveau mode de recherche de produit
 AdvancedProductSearchSetup = Options de configuration de la recherche avancée de produits
 Settings = Settings
 AdvancedProductSearchSetupPage = Options de configuration de la recherche avancée de produits
-
+APS_NO_DISPLAY_RESULTS_ON_OPEN = Amélioration des performances : Attendre que l'utilisateur effectue une recherche avant d'afficher les résultats
 
 #
 # About page
@@ -75,6 +75,6 @@ ProductCategories = Tags/catégories produits
 SearchWillBeOnTheseFields = La recherche globale s'effectue sur les champs suivants : %s
 ProductRefFourn = Référence fournisseur
 launchYourFirstSearch = Lancez votre recherche
-
+QtyAlreadyInDoc = Quantité déjà présente dans le document
 searchToBuy = En achat
 searchToSell = En vente

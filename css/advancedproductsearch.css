@@ -159,6 +159,10 @@
 	cursor: wait; /* Add a pointer on hover */
 }
 
+.advanced-product-search-col.--stock-reel, .advanced-product-search-col.--stock-theorique {
+	text-align: center;
+}
+
 
 /* LOADING EFFECT */
 .dialog-loading__loading {
@@ -230,4 +234,35 @@
 @keyframes dialog-loading-spin  {
 	0%,100% {transform:rotate(0deg) scale(1)}
 	50%     {transform:rotate(720deg) scale(0.6)}
+}
+
+.advanced-product-search-col{
+	position: relative;
+}
+
+
+@keyframes badgePopDisplay {
+	from {opacity:0; transform: translateX(-50%) translateY(0%);}
+	to {opacity:1; transform: translateX(-50%) translateY(-50%);}
+}
+
+.advanced-product-search__badge-qty-doc{
+	/* disable select */
+	-webkit-user-select: none; /* Safari */
+	-ms-user-select: none; /* IE 10 and IE 11 */
+	user-select: none; /* Standard syntax */
+
+	font-size: 10px;
+	display: inline-block;
+	position: absolute;
+	transform: translateX(-50%) translateY(-50%);
+	transition: all 150ms ease-in-out;
+
+	animation:  300ms ease-in-out badgePopDisplay;
+}
+.advanced-product-search__badge-qty-doc:hover{
+	transform: translateX(-50%) translateY(-50%) scale(200%);
+}
+.advanced-product-search__badge-qty-doc:empty{
+	display: none;
 }

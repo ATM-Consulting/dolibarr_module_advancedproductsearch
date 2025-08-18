@@ -28,6 +28,7 @@ ModuleAdvancedProductSearchDesc = Ajoute un nouveau mode de recherche de produit
 AdvancedProductSearchSetup = Options de configuration de la recherche avancée de produits
 Settings = Settings
 AdvancedProductSearchSetupPage = Options de configuration de la recherche avancée de produits
+APS_NO_DISPLAY_RESULTS_ON_OPEN = Performance enhancement: Wait for user to perform a search before displaying results
 
 
 #
@@ -70,3 +71,4 @@ ProductRefFourn=Référence fournisseur
 
 searchToBuy = For purchase
 searchToSell = For sale
+QtyAlreadyInDoc = Quantity already present in the document

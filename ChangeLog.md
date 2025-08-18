@@ -2,8 +2,18 @@
 
 
 # NOT RELEASED
+- NEW : add new hook in advancedProductSearchForm to handle input behavior - *24/07/2025* - 1.11.0
 
+## Release 1.10
+- FIX : COMPAT V22 - **03/04/2025** - 1.10.2
+- FIX : Ajout d'une condition dans le champ de recherche "fournisseurs" sur la page de recherche avancée. - **09/12/2024** - 1.10.1
+- NEW : Add hooks for list - **12/09/2024** - 1.10.0
 
+## Release 1.9
+- NEW : Display qty of current document  - **12/09/2024** - 1.9.0
+
+## Release 1.8
+- NEW : Setup conf for default search behavior  - **12/09/2024** - 1.8.0
 
 ## Release 1.7
 - FIX : DA026479 - Passage des informations en POST plutôt que GET - **09/07/2025** - 1.7.2

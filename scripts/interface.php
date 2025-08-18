@@ -57,6 +57,7 @@ if ($action === 'add-product') {
 
 	$jsonResponse = new stdClass();
 	$jsonResponse->result = false;
+	$jsonResponse->data = new stdClass();
 	$jsonResponse->msg = '';
 	$jsonResponse->newToken = newToken();
 
@@ -396,8 +397,23 @@ if ($action === 'add-product') {
 						}
 
 						if($resAdd > 0) {
-							$jsonResponse->msg = $langs->trans('LineAdded');
-							$jsonResponse->result = true;
+							if($object->fetch($object->id) <= 0) { // refetch to have no error on qty calc
+								$jsonResponse->msg = $langs->trans('ErrorFetchObject');
+								$jsonResponse->result = false;
+							}
+							else{
+								$jsonResponse->msg = $langs->trans('LineAdded');
+								$jsonResponse->result = true;
+								$jsonResponse->data->newTotalQtyForProduct = 0;
+
+								if(!empty($object->lines)){
+									foreach ($object->lines as $line) {
+										if($line->fk_product == $fk_product) {
+											$jsonResponse->data->newTotalQtyForProduct+= $line->qty;
+										}
+									}
+								}
+							}
 						} elseif($resAdd < 0) {
 							$jsonResponse->msg = $langs->trans('ErrorOnAddLine');
 						}
@@ -423,7 +439,7 @@ if ($action === 'add-product') {
 elseif ($action === 'product-search-form') {
 	$AdvancedProductSearch = new AdvancedProductSearch();
 
-	if(isset($_GET['displayResults']) &&  GETPOST("element", 'int') == 0){
+	if(isset($_GET['displayResults']) && GETPOSTINT('displayResults') == 0){
 		$AdvancedProductSearch->displayResults = false;
 	}
 
