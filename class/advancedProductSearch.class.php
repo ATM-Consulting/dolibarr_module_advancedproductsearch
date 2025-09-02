@@ -363,7 +363,7 @@ class AdvancedProductSearch
 		$this->searchSql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_fournisseur_price as pfp ON (pfp.fk_product = p.rowid) ";
 
 		if (isModEnabled('multicompany') && getDolGlobalInt('MULTICOMPANY_PRODUCT_SHARE_ALL_BY_DEFAULT')){
-			$this->searchSql .= ' LEFT JOIN llx_entity_element_sharing AS les ON les.fk_element = p.rowid AND les.entity IN ('.getEntity("product").') AND les.element = "product"';
+			$this->searchSql .= ' LEFT JOIN '.$db->prefix().'entity_element_sharing AS les ON les.fk_element = p.rowid AND les.entity IN ('.getEntity("product").') AND les.element = "product"';
 		}
 
 		// multilang
