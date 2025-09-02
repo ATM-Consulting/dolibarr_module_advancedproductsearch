@@ -361,6 +361,11 @@ class AdvancedProductSearch
 		$this->searchSql = ' FROM '.MAIN_DB_PREFIX.'product as p ';
 		if (!empty($this->search['search_category_product_list']) || !empty($this->search['catid'])) $this->searchSql .= ' LEFT JOIN '.MAIN_DB_PREFIX."categorie_product as cp ON (p.rowid = cp.fk_product) "; // We'll need this table joined to the select in order to filter by categ
 		$this->searchSql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_fournisseur_price as pfp ON (pfp.fk_product = p.rowid) ";
+
+		if (isModEnabled('multicompany') && getDolGlobalInt('MULTICOMPANY_PRODUCT_SHARE_ALL_BY_DEFAULT')){
+			$this->searchSql .= ' LEFT JOIN llx_entity_element_sharing AS les ON les.fk_element = p.rowid AND les.entity IN ('.getEntity("product").') AND les.element = "product"';
+		}
+
 		// multilang
 		if (!empty(getDolGlobalString('MAIN_MULTILANGS'))) $this->searchSql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_lang as pl ON (pl.fk_product = p.rowid AND pl.lang = '".$langs->getDefaultLang()."' )";
 		if (!empty(getDolGlobalString('PRODUCT_USE_UNITS')))   $this->searchSql .= " LEFT JOIN ".MAIN_DB_PREFIX."c_units cu ON (cu.rowid = p.fk_unit)";
@@ -370,6 +375,11 @@ class AdvancedProductSearch
 		$this->searchSql.= $hookmanager->resPrint;
 
 		$this->searchSql .= ' WHERE p.entity IN ('.getEntity('product').')';
+
+		if (isModEnabled('multicompany') && getDolGlobalInt('MULTICOMPANY_PRODUCT_SHARE_ALL_BY_DEFAULT')){
+			$this->searchSql .= " AND les.rowid IS NULL ";
+		}
+
 		if (isset($this->search['search_tosell']) && dol_strlen($this->search['search_tosell']) > 0 && $this->search['search_tosell'] != -1) $this->searchSql .= " AND p.tosell = ".((int) $this->search['search_tosell']);
 		if (isset($this->search['search_tobuy']) && dol_strlen($this->search['search_tobuy']) > 0 && $this->search['search_tobuy'] != -1)   $this->searchSql .= " AND p.tobuy = ".((int) $this->search['search_tobuy']);
 

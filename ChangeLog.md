@@ -2,6 +2,7 @@
 
 
 # NOT RELEASED
+-FIX : add multicompany shared element in sql query - *02/09/2025* - 1.11.1  
 - NEW : add new hook in advancedProductSearchForm to handle input behavior - *24/07/2025* - 1.11.0
 
 ## Release 1.10
