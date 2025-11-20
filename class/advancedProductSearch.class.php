@@ -108,6 +108,39 @@ class AdvancedProductSearch
 		$advancedProductSearchSocieteCache = array();
 	}
 
+	/**
+	 * Check if user can access supplier related data.
+	 *
+	 * @return bool
+	 */
+	private function canUseSupplierData(): bool
+	{
+		global $user;
+
+		$canReadSuppliers = false;
+
+		if (!empty($user->rights->societe->fournisseur->lire)) {
+			$canReadSuppliers = true;
+		} elseif (!empty($user->rights->fournisseur->lire)) {
+			$canReadSuppliers = true;
+		} elseif (method_exists($user, 'hasRight')) {
+			$canReadSuppliers = $user->hasRight('societe', 'fournisseur', 'lire');
+		}
+
+		return isModEnabled('fournisseur') && $canReadSuppliers;
+	}
+
+	/**
+	 * Reset supplier filters when user is not allowed to use them.
+	 */
+	private function resetSupplierFiltersIfNoRight()
+	{
+		if (!$this->canUseSupplierData()) {
+			$this->search['search_supplierref'] = '';
+			$this->search['fourn_id'] = 0;
+		}
+	}
+
 
 	/**
 	 * @param $fk_product
@@ -157,6 +190,7 @@ class AdvancedProductSearch
 
 	public function  setUrlParamsFromSearch(){
 		global $conf;
+		$canUseSupplierData = $this->canUseSupplierData();
 
 		if (!empty($contextpage) && $contextpage != $_SERVER["PHP_SELF"]) $this->urlParams['contextpage'] = $contextpage;
 		if ($this->search['limit'] > 0 && $this->search['limit'] != $conf->liste_limit) $this->urlParams['limit'] = $this->search['limit'];
@@ -166,13 +200,13 @@ class AdvancedProductSearch
 			$this->urlParams['search_category_product_list[]'] = $this->search['searchearchCategoryProduct'];
 		}
 		if ($this->search['search_ref']) $this->urlParams['search_ref'] = $this->search['search_ref'];
-		if ($this->search['search_supplierref']) $this->urlParams['search_supplierref'] = $this->search['search_supplierref'];
+		if ($canUseSupplierData && $this->search['search_supplierref']) $this->urlParams['search_supplierref'] = $this->search['search_supplierref'];
 		if ($this->search['fk_company']) $this->urlParams['socid'] = $this->search['fk_company'];
 		//	if ($this->search['search_ref']_supplier) $this->urlParams['search_ref_supplier'] = $this->search['search_ref_supplier'];
 		if ($this->search['search_barcode']) $this->urlParams['search_barcode'] = $this->search['search_barcode'];
 		if ($this->search['search_label']) $this->urlParams['search_label'] = $this->search['search_label'];
 		if ($this->search['search_tosell'] != '') $this->urlParams['search_tosell'] = $this->search['search_tosell'];
-		if ($this->search['fourn_id'] > 0) $this->urlParams['fourn_id'] = $this->search['fourn_id'];
+		if ($canUseSupplierData && $this->search['fourn_id'] > 0) $this->urlParams['fourn_id'] = $this->search['fourn_id'];
 		//if ($this->searcheach_categ) $this->urlParams['search_categ'] = $this->search['searchearch_categ'];
 		if ($this->search['type'] != '') $this->urlParams['type'] = $this->search['type'];
 		if ($this->search['search_type'] != '') $this->urlParams['search_type'] = $this->search['search_type'];
@@ -242,6 +276,7 @@ class AdvancedProductSearch
 		$this->search['fk_element'] = GETPOST("fk_element", "int");
 
 
+		$this->resetSupplierFiltersIfNoRight();
 		$this->setSearchParamDefaultValues();
 
 		return $this->search;
@@ -266,7 +301,7 @@ class AdvancedProductSearch
 	 * @return string
 	 */
 	public function advancedProductSearchForm($isSupplier = false) {
-		global $langs, $db, $action,$hookmanager;
+		global $langs, $db, $action,$hookmanager, $user;
 
 		$hooksParameters = array(
 			'obj' => false,
@@ -291,6 +326,9 @@ class AdvancedProductSearch
 
 		$form = new Form($db);
 
+
+		$this->resetSupplierFiltersIfNoRight();
+		$canUseSupplierData = $this->canUseSupplierData();
 
 		$currentQtyByProduct = array();
 		$object = self::objectAutoLoad($this->search['element'], $db);
@@ -340,7 +378,7 @@ class AdvancedProductSearch
 		}
 
 		// Filter on supplier
-		if (isModEnabled('fournisseur')){
+		if ($canUseSupplierData){
 			$this->fieldsToSearchAll[] = 'pfp.ref_fourn';
 			$this->fieldsToSearchAllText[]='ProductRefFourn';
 		}
@@ -396,7 +434,7 @@ class AdvancedProductSearch
 		if ($this->search['search_barcode']) $this->searchSql .= natural_search('p.barcode', $this->search['search_barcode']);
 
 		// Filter on supplier
-		if (isModEnabled('fournisseur') && !empty($this->search['search_supplierref'])){
+		if ($canUseSupplierData && !empty($this->search['search_supplierref'])){
 			$this->searchSql .= natural_search('pfp.ref_fourn', $this->search['search_supplierref']);
 		}
 
@@ -427,7 +465,7 @@ class AdvancedProductSearch
 				$this->searchSql .= " AND (".implode(' AND ', $this->searchearchCategoryProductSqlList).")";
 			}
 		}
-		if ($this->search['fourn_id'] > 0)  $this->searchSql .= " AND pfp.fk_soc = ".((int) $this->search['fourn_id']);
+		if ($canUseSupplierData && $this->search['fourn_id'] > 0)  $this->searchSql .= " AND pfp.fk_soc = ".((int) $this->search['fourn_id']);
 
 		$hookmanager->executeHooks('printFieldListWhere', $hooksParameters, $object, $action); // Note that $action and $object may have been modified by hook
 		$this->searchSql .= $hookmanager->resPrint;
@@ -501,7 +539,7 @@ class AdvancedProductSearch
 
 		$moreForFilter = '';
 		// Filter on supplier
-		if (isModEnabled('fournisseur'))
+		if ($canUseSupplierData)
 		{
 			$moreForFilter .= '<div class="divsearchfield" >';
 			$moreForFilter .= $langs->trans('Supplier').': ';
