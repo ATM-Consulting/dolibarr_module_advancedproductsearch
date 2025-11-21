@@ -117,15 +117,7 @@ class AdvancedProductSearch
 	{
 		global $user;
 
-		$canReadSuppliers = false;
-
-		if (!empty($user->rights->societe->fournisseur->lire)) {
-			$canReadSuppliers = true;
-		} elseif (!empty($user->rights->fournisseur->lire)) {
-			$canReadSuppliers = true;
-		} elseif (method_exists($user, 'hasRight')) {
-			$canReadSuppliers = $user->hasRight('societe', 'fournisseur', 'lire');
-		}
+		$canReadSuppliers = $user->hasRight('fournisseur', 'lire');
 
 		return isModEnabled('fournisseur') && $canReadSuppliers;
 	}
