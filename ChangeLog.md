@@ -4,6 +4,7 @@
 # NOT RELEASED
 
 ## Release 1.11
+- FIX : Add permission checks for supplier-related filters in advanced product search - *20/11/2025* - 1.11.2
 - FIX : add multicompany shared element in sql query - *02/09/2025* - 1.11.1
 - NEW : add new hook in advancedProductSearchForm to handle input behavior - *24/07/2025* - 1.11.0
 ## Release 1.10
