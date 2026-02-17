@@ -293,13 +293,13 @@ class AdvancedProductSearch
 	 * @return string
 	 */
 	public function advancedProductSearchForm($isSupplier = false) {
-		global $langs, $db, $action,$hookmanager, $user;
+		global $langs, $db, $action,$hookmanager, $user, $conf;
 
 		$hooksParameters = array(
 			'obj' => false,
 			'arrayfields' => array(), // to avoid other modules hook errors
 		);
-		$hookmanager->initHooks(array('adpsproductservicelist'));
+		$hookmanager->initHooks(array('adpsproductservicelist', 'form'));
 
 		$output = '';
 
@@ -353,6 +353,10 @@ class AdvancedProductSearch
 
 		$param = '&'.$this->setUrlParamsFromSearch();
 
+		// Match Dolibarr add-line selector behavior (current entity + shared entities managed by multicompany).
+		$entityProductList = getEntity('product');
+		$entitySupplierPriceList = getEntity('productsupplierprice');
+
 		// REQUETTE SQL
 
 		// List of fields to search into when doing a "search in all"
@@ -390,10 +394,11 @@ class AdvancedProductSearch
 
 		$this->searchSql = ' FROM '.MAIN_DB_PREFIX.'product as p ';
 		if (!empty($this->search['search_category_product_list']) || !empty($this->search['catid'])) $this->searchSql .= ' LEFT JOIN '.MAIN_DB_PREFIX."categorie_product as cp ON (p.rowid = cp.fk_product) "; // We'll need this table joined to the select in order to filter by categ
-		$this->searchSql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_fournisseur_price as pfp ON (pfp.fk_product = p.rowid) ";
+		$this->searchSql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_fournisseur_price as pfp ON (pfp.fk_product = p.rowid AND pfp.entity IN (".$entitySupplierPriceList.")) ";
 
-		if (isModEnabled('multicompany') && getDolGlobalInt('MULTICOMPANY_PRODUCT_SHARE_ALL_BY_DEFAULT')){
-			$this->searchSql .= ' LEFT JOIN '.$db->prefix().'entity_element_sharing AS les ON les.fk_element = p.rowid AND les.entity IN ('.getEntity("product").') AND les.element = "product"';
+		// In "share all by default", rows in entity_element_sharing are explicit exclusions for current entity.
+		if (isModEnabled('multicompany') && getDolGlobalInt('MULTICOMPANY_PRODUCT_SHARE_ALL_BY_DEFAULT')) {
+			$this->searchSql .= ' LEFT JOIN '.$db->prefix().'entity_element_sharing AS les ON les.fk_element = p.rowid AND les.entity = '.((int) $conf->entity).' AND les.element = "product"';
 		}
 
 		// multilang
@@ -404,10 +409,28 @@ class AdvancedProductSearch
 		$hookmanager->executeHooks('printFieldListFrom', $hooksParameters, $object, $action); // Note that $action and $object may have been modified by hook
 		$this->searchSql.= $hookmanager->resPrint;
 
-		$this->searchSql .= ' WHERE p.entity IN ('.getEntity('product').')';
+		$this->searchSql .= ' WHERE p.entity IN ('.$entityProductList.')';
 
-		if (isModEnabled('multicompany') && getDolGlobalInt('MULTICOMPANY_PRODUCT_SHARE_ALL_BY_DEFAULT')){
-			$this->searchSql .= " AND les.rowid IS NULL ";
+		if (isModEnabled('multicompany') && getDolGlobalInt('MULTICOMPANY_PRODUCT_SHARE_ALL_BY_DEFAULT')) {
+			$this->searchSql .= " AND les.rowid IS NULL";
+		}
+
+		// Keep same behavior as Dolibarr standard add-line selector for variants.
+		if (getDolGlobalString('PRODUIT_ATTRIBUTES_HIDECHILD')) {
+			if (getDolGlobalString('PRODUIT_ATTRIBUTES_HIDECHILD_BUT_ALLOW_SEARCH_IN_EAN13')) {
+				if (strlen((string) $this->search['sall']) != 13) {
+					$this->searchSql .= " AND NOT EXISTS (SELECT pac.rowid FROM ".MAIN_DB_PREFIX."product_attribute_combination as pac WHERE pac.fk_product_child = p.rowid)";
+				}
+			} else {
+				$this->searchSql .= " AND NOT EXISTS (SELECT pac.rowid FROM ".MAIN_DB_PREFIX."product_attribute_combination as pac WHERE pac.fk_product_child = p.rowid)";
+			}
+		}
+
+		// Keep same default status logic as standard add-line selectors.
+		if ($isSupplier) {
+			$this->search['search_tosell'] = -1;
+		} else {
+			$this->search['search_tobuy'] = -1;
 		}
 
 		if (isset($this->search['search_tosell']) && dol_strlen($this->search['search_tosell']) > 0 && $this->search['search_tosell'] != -1) $this->searchSql .= " AND p.tosell = ".((int) $this->search['search_tosell']);
@@ -460,6 +483,14 @@ class AdvancedProductSearch
 		if ($canUseSupplierData && $this->search['fourn_id'] > 0)  $this->searchSql .= " AND pfp.fk_soc = ".((int) $this->search['fourn_id']);
 
 		$hookmanager->executeHooks('printFieldListWhere', $hooksParameters, $object, $action); // Note that $action and $object may have been modified by hook
+		$this->searchSql .= $hookmanager->resPrint;
+
+		// Reuse core selector hook used by multicompany to filter shared/non-shared products by element.
+		$coreSelectorHookParameters = array(
+			'filterkey' => $this->search['sall'],
+			'socid' => (int) $this->search['fk_company']
+		);
+		$hookmanager->executeHooks('selectProductsListWhere', $coreSelectorHookParameters, $object, $action);
 		$this->searchSql .= $hookmanager->resPrint;
 
 
@@ -743,15 +774,24 @@ class AdvancedProductSearch
 								$output .= '<td class="advanced-product-search-col --stock-theorique" >' . $product->stock_theorique . '</td>';
 							}
 
-							$hookParam = $hooksParameters;
-							$hookParam['product'] = $product;
-							$hookmanager->executeHooks('printFieldListValue', $hookParam, $object, $action); // Note that $action and $object may have been modified by hook
-							$output .= $hookmanager->resPrint;
+								$hookParam = $hooksParameters;
+								$hookParam['product'] = $product;
+								$hookmanager->executeHooks('printFieldListValue', $hookParam, $object, $action); // Note that $action and $object may have been modified by hook
+								$output .= $hookmanager->resPrint;
 
-							if (isModEnabled('fournisseur')) {
-								$output .= '<td class="advanced-product-search-col --buy-price" >';
-								$TFournPriceList = self::getFournPriceList($product->id, $isSupplier ? $object->socid : 0);
-								if (!empty($TFournPriceList)) {
+								$lineAttributes = [
+									'buyingPriceAdv' => array('readonly' => false),
+									'marginRate' => array('readonly' => false),
+									'productSubPrice' => array('readonly' => false),
+									'productReduction' => array('readonly' => false),
+									'productQty' => array('readonly' => false),
+									'productSupplierPrice' => array('selectedId' => $idSelected, 'disabled' => false)
+								];
+
+								if (isModEnabled('fournisseur')) {
+									$output .= '<td class="advanced-product-search-col --buy-price" >';
+									$TFournPriceList = self::getFournPriceList($product->id, $isSupplier ? $object->socid : 0);
+									if (!empty($TFournPriceList)) {
 //						$output.= '<div class="default-visible" >'.price($product->pmp).'</div>';
 //						$output.= '<div class="default-hidden" >';
 
@@ -791,22 +831,15 @@ class AdvancedProductSearch
 											}
 											// On insère une valeur vide, car si plusieurs prix fourn, on laisse le choix à l'utilisateur de sélectionner celui qu'il souhaite
 											$this->searchSelectArray[0] = array('data-up' => 0, 'data-fourn_qty' => 0);
+											}
 										}
-									}
 
 
-									$lineAttributes = [
-										'buyingPriceAdv' => array('readonly' => false),
-										'marginRate' => array('readonly' => false),
-										'productSubPrice' => array('readonly' => false),
-										'productReduction' => array('readonly' => false),
-										'productQty' => array('readonly' => false),
-										'productSupplierPrice' => array('selectedId' => $idSelected, 'disabled' => false)
-									];
-									$hookParameters['product'] = $product;
-									$hookParameters['search_context'] = $this->search;
-									$hookParameters['priceOptions'] = $this->searchSelectArray;
-									$hookmanager->executeHooks('advancedSearchAlterLineAttributes', $hookParameters, $lineAttributes, $action);
+										$lineAttributes['productSupplierPrice']['selectedId'] = $idSelected;
+										$hookParameters['product'] = $product;
+										$hookParameters['search_context'] = $this->search;
+										$hookParameters['priceOptions'] = $this->searchSelectArray;
+										$hookmanager->executeHooks('advancedSearchAlterLineAttributes', $hookParameters, $lineAttributes, $action);
 
 
 									$key_in_label = 0;
