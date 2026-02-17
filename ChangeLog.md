@@ -4,6 +4,7 @@
 # NOT RELEASED
 
 ## Release 1.11
+- FIX : Align popup search filters with standard add-line multicompany sharing (exclude non-shared products/services) and fix PHP warnings on line attributes - *17/02/2026* - 1.11.3
 - FIX : Add permission checks for supplier-related filters in advanced product search - *20/11/2025* - 1.11.2
 - FIX : add multicompany shared element in sql query - *02/09/2025* - 1.11.1
 - NEW : add new hook in advancedProductSearchForm to handle input behavior - *24/07/2025* - 1.11.0
