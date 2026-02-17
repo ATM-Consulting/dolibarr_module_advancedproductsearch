@@ -5,6 +5,14 @@
  */
 class AdvancedProductSearch
 {
+	private const DEFAULT_LINE_ATTRIBUTES = array(
+		'buyingPriceAdv' => array('readonly' => false),
+		'marginRate' => array('readonly' => false),
+		'productSubPrice' => array('readonly' => false),
+		'productReduction' => array('readonly' => false),
+		'productQty' => array('readonly' => false),
+		'productSupplierPrice' => array('selectedId' => '', 'disabled' => false)
+	);
 
 
 	public $displayResults = true;
@@ -292,14 +300,14 @@ class AdvancedProductSearch
 	 * @param bool $isSupplier
 	 * @return string
 	 */
-	public function advancedProductSearchForm($isSupplier = false) {
-		global $langs, $db, $action,$hookmanager, $user;
+	public function advancedProductSearchForm($isSupplier = false): string {
+		global $langs, $db, $action,$hookmanager, $user, $conf;
 
 		$hooksParameters = array(
 			'obj' => false,
 			'arrayfields' => array(), // to avoid other modules hook errors
 		);
-		$hookmanager->initHooks(array('adpsproductservicelist'));
+		$hookmanager->initHooks(array('adpsproductservicelist', 'form'));
 
 		$output = '';
 
@@ -353,6 +361,10 @@ class AdvancedProductSearch
 
 		$param = '&'.$this->setUrlParamsFromSearch();
 
+		// Match Dolibarr add-line selector behavior (current entity + shared entities managed by multicompany).
+		$entityProductList = getEntity('product');
+		$entitySupplierPriceList = getEntity('productsupplierprice');
+
 		// REQUETTE SQL
 
 		// List of fields to search into when doing a "search in all"
@@ -390,10 +402,11 @@ class AdvancedProductSearch
 
 		$this->searchSql = ' FROM '.MAIN_DB_PREFIX.'product as p ';
 		if (!empty($this->search['search_category_product_list']) || !empty($this->search['catid'])) $this->searchSql .= ' LEFT JOIN '.MAIN_DB_PREFIX."categorie_product as cp ON (p.rowid = cp.fk_product) "; // We'll need this table joined to the select in order to filter by categ
-		$this->searchSql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_fournisseur_price as pfp ON (pfp.fk_product = p.rowid) ";
+		$this->searchSql .= " LEFT JOIN ".MAIN_DB_PREFIX."product_fournisseur_price as pfp ON (pfp.fk_product = p.rowid AND pfp.entity IN (".$entitySupplierPriceList.")) ";
 
-		if (isModEnabled('multicompany') && getDolGlobalInt('MULTICOMPANY_PRODUCT_SHARE_ALL_BY_DEFAULT')){
-			$this->searchSql .= ' LEFT JOIN '.$db->prefix().'entity_element_sharing AS les ON les.fk_element = p.rowid AND les.entity IN ('.getEntity("product").') AND les.element = "product"';
+		// In "share all by default", rows in entity_element_sharing are explicit exclusions for current entity.
+		if (isModEnabled('multicompany') && getDolGlobalInt('MULTICOMPANY_PRODUCT_SHARE_ALL_BY_DEFAULT')) {
+			$this->searchSql .= ' LEFT JOIN '.$db->prefix().'entity_element_sharing AS les ON les.fk_element = p.rowid AND les.entity = '.((int) $conf->entity).' AND les.element = "product"';
 		}
 
 		// multilang
@@ -404,10 +417,28 @@ class AdvancedProductSearch
 		$hookmanager->executeHooks('printFieldListFrom', $hooksParameters, $object, $action); // Note that $action and $object may have been modified by hook
 		$this->searchSql.= $hookmanager->resPrint;
 
-		$this->searchSql .= ' WHERE p.entity IN ('.getEntity('product').')';
+		$this->searchSql .= ' WHERE p.entity IN ('.$entityProductList.')';
 
-		if (isModEnabled('multicompany') && getDolGlobalInt('MULTICOMPANY_PRODUCT_SHARE_ALL_BY_DEFAULT')){
-			$this->searchSql .= " AND les.rowid IS NULL ";
+		if (isModEnabled('multicompany') && getDolGlobalInt('MULTICOMPANY_PRODUCT_SHARE_ALL_BY_DEFAULT')) {
+			$this->searchSql .= " AND les.rowid IS NULL";
+		}
+
+		// Keep same behavior as Dolibarr standard add-line selector for variants.
+		if (getDolGlobalString('PRODUIT_ATTRIBUTES_HIDECHILD')) {
+			if (getDolGlobalString('PRODUIT_ATTRIBUTES_HIDECHILD_BUT_ALLOW_SEARCH_IN_EAN13')) {
+				if (strlen((string) $this->search['sall']) != 13) {
+					$this->searchSql .= " AND NOT EXISTS (SELECT pac.rowid FROM ".$db->prefix()."product_attribute_combination as pac WHERE pac.fk_product_child = p.rowid)";
+				}
+			} else {
+				$this->searchSql .= " AND NOT EXISTS (SELECT pac.rowid FROM ".$db->prefix()."product_attribute_combination as pac WHERE pac.fk_product_child = p.rowid)";
+			}
+		}
+
+		// Keep same default status logic as standard add-line selectors.
+		if ($isSupplier) {
+			$this->search['search_tosell'] = -1;
+		} else {
+			$this->search['search_tobuy'] = -1;
 		}
 
 		if (isset($this->search['search_tosell']) && dol_strlen($this->search['search_tosell']) > 0 && $this->search['search_tosell'] != -1) $this->searchSql .= " AND p.tosell = ".((int) $this->search['search_tosell']);
@@ -460,6 +491,14 @@ class AdvancedProductSearch
 		if ($canUseSupplierData && $this->search['fourn_id'] > 0)  $this->searchSql .= " AND pfp.fk_soc = ".((int) $this->search['fourn_id']);
 
 		$hookmanager->executeHooks('printFieldListWhere', $hooksParameters, $object, $action); // Note that $action and $object may have been modified by hook
+		$this->searchSql .= $hookmanager->resPrint;
+
+		// Reuse core selector hook used by multicompany to filter shared/non-shared products by element.
+		$coreSelectorHookParameters = array(
+			'filterkey' => $this->search['sall'],
+			'socid' => (int) $this->search['fk_company']
+		);
+		$hookmanager->executeHooks('selectProductsListWhere', $coreSelectorHookParameters, $object, $action);
 		$this->searchSql .= $hookmanager->resPrint;
 
 
@@ -685,150 +724,144 @@ class AdvancedProductSearch
 			.$this->searchSql.$db->order($this->search['sortfield'], $this->search['sortorder'])
 			.$db->plimit($this->search['limit'] + 1, $this->search['offset']);
 
-		if($this->displayResults) {
-			$querySearchRes = $db->query($this->searchSqlList);
+			if ($this->displayResults) {
+				$querySearchRes = $db->query($this->searchSqlList);
 
-			if ($querySearchRes) {
-				if ($curentCountResult > 0) {
-					while ($obj = $db->fetch_object($querySearchRes)) {
-						$product = new Product($db);
-						$resProd = $product->fetch($obj->rowid);
-						if ($resProd > 0) {
-							$product->load_stock();
-							$idSelected = '';
-							// Réduction par défaut du client
-							$reduction = doubleval($object->thirdparty->remise_percent);
-							if ($isSupplier) {
-								$reduction = doubleval($object->thirdparty->remise_supplier_percent);
-							}
+				if ($querySearchRes) {
+					if ($curentCountResult > 0) {
+						$defaultLineAttributes = self::DEFAULT_LINE_ATTRIBUTES;
+						while ($obj = $db->fetch_object($querySearchRes)) {
+							$product = new Product($db);
+							$resProd = $product->fetch($obj->rowid);
+							if ($resProd > 0) {
+								$product->load_stock();
+								$idSelected = '';
 
-							// Prix unitaire du produit avec prise en compte des niveau de prix et du client
-							$this->searchubprice = self::getProductSellPrice($product->id, $this->search['fk_company']);
-							if ($isSupplier) {
-								$this->searchubprice = 0;
-							}
-
-							// calcule du prix unitaire final apres réduction
-							$finalSubprice = $this->searchubprice - $this->searchubprice * $reduction / 100;
-
-							// COMPTATIBILITE MODULE DISCOUNT RULE : RECHERCHE DE REGLE DE TARIFICATION
-							if (isModEnabled('discountrules') && !$isSupplier) {
-								if (!class_exists('DiscountSearch')) {
-									dol_include_once('/discountrules/class/discountSearch.class.php');
+								// Réduction par défaut du client
+								$reduction = doubleval($object->thirdparty->remise_percent);
+								if ($isSupplier) {
+									$reduction = doubleval($object->thirdparty->remise_supplier_percent);
 								}
-								if (class_exists('DiscountSearch')) { // Il est possible que le module soit supprimé mais pas désinstallé
-									$discountSearch = new DiscountSearch($db);
-									$this->searchubprice = DiscountRule::getProductSellPrice($product->id, $this->search['fk_company']);
-									$discountSearchResult = $discountSearch->search(0, $product->id, $this->search['fk_company'], $this->search['fk_project']);
-									if ($discountSearchResult->result) {
-										// Mise en page du résultat
-										$discountSearchResult->tpMsg = getDiscountRulesInterfaceMessageTpl($langs, $discountSearchResult, $action);
-										$this->searchubprice = $discountSearchResult->subprice;
-										$finalSubprice = $discountSearchResult->calcFinalSubprice();
 
-										if (!empty($discountSearchResult->reduction)) {
-											$reduction = $discountSearchResult->reduction;
-										}
+								// Prix unitaire du produit avec prise en compte des niveau de prix et du client
+								$this->searchubprice = self::getProductSellPrice($product->id, $this->search['fk_company']);
+								if ($isSupplier) {
+									$this->searchubprice = 0;
+								}
+
+								// calcule du prix unitaire final apres réduction
+								$finalSubprice = $this->searchubprice - $this->searchubprice * $reduction / 100;
+
+								// COMPTATIBILITE MODULE DISCOUNT RULE : RECHERCHE DE REGLE DE TARIFICATION
+								if (isModEnabled('discountrules') && !$isSupplier) {
+									if (!class_exists('DiscountSearch')) {
+										dol_include_once('/discountrules/class/discountSearch.class.php');
 									}
-								} else {
-									setEventMessage($langs->trans('ErrorMissingModuleDiscountRule'));
+									if (class_exists('DiscountSearch')) { // Il est possible que le module soit supprimé mais pas désinstallé
+										$discountSearch = new DiscountSearch($db);
+										$this->searchubprice = DiscountRule::getProductSellPrice($product->id, $this->search['fk_company']);
+										$discountSearchResult = $discountSearch->search(0, $product->id, $this->search['fk_company'], $this->search['fk_project']);
+										if ($discountSearchResult->result) {
+											// Mise en page du résultat
+											$discountSearchResult->tpMsg = getDiscountRulesInterfaceMessageTpl($langs, $discountSearchResult, $action);
+											$this->searchubprice = $discountSearchResult->subprice;
+											$finalSubprice = $discountSearchResult->calcFinalSubprice();
+
+											if (!empty($discountSearchResult->reduction)) {
+												$reduction = $discountSearchResult->reduction;
+											}
+										}
+									} else {
+										setEventMessage($langs->trans('ErrorMissingModuleDiscountRule'));
+									}
 								}
-							}
 
-							$output .= '<tr class="advanced-product-search-row --data" data-product="' . $product->id . '"  >';
-							$output .= '<td class="advanced-product-search-col --ref" >' . $product->getNomUrl(1) . '</td>';
-							$output .= '<td class="advanced-product-search-col --label" >' . self::highlightWordsOfSearchQuery($product->label, $this->search['search_label'] . ' ' . $this->search['sall']) . '</td>';
-							if (isModEnabled('stock')) {
-								$output .= '<td class="advanced-product-search-col --stock-reel" >' . $product->stock_reel . '</td>';
-								$output .= '<td class="advanced-product-search-col --stock-theorique" >' . $product->stock_theorique . '</td>';
-							}
+								$output .= '<tr class="advanced-product-search-row --data" data-product="' . $product->id . '"  >';
+								$output .= '<td class="advanced-product-search-col --ref" >' . $product->getNomUrl(1) . '</td>';
+								$output .= '<td class="advanced-product-search-col --label" >' . self::highlightWordsOfSearchQuery($product->label, $this->search['search_label'] . ' ' . $this->search['sall']) . '</td>';
+								if (isModEnabled('stock')) {
+									$output .= '<td class="advanced-product-search-col --stock-reel" >' . $product->stock_reel . '</td>';
+									$output .= '<td class="advanced-product-search-col --stock-theorique" >' . $product->stock_theorique . '</td>';
+								}
 
-							$hookParam = $hooksParameters;
-							$hookParam['product'] = $product;
-							$hookmanager->executeHooks('printFieldListValue', $hookParam, $object, $action); // Note that $action and $object may have been modified by hook
-							$output .= $hookmanager->resPrint;
+								$hookParam = $hooksParameters;
+								$hookParam['product'] = $product;
+								$hookmanager->executeHooks('printFieldListValue', $hookParam, $object, $action); // Note that $action and $object may have been modified by hook
+								$output .= $hookmanager->resPrint;
 
-							if (isModEnabled('fournisseur')) {
-								$output .= '<td class="advanced-product-search-col --buy-price" >';
-								$TFournPriceList = self::getFournPriceList($product->id, $isSupplier ? $object->socid : 0);
-								if (!empty($TFournPriceList)) {
-//						$output.= '<div class="default-visible" >'.price($product->pmp).'</div>';
-//						$output.= '<div class="default-hidden" >';
+								$lineAttributes = $defaultLineAttributes;
+								$lineAttributes['productSupplierPrice']['selectedId'] = $idSelected;
+								$this->searchSelectArray = array();
 
-									$this->searchSelectArray = array();
-									$idSelected = '';
+								if (isModEnabled('fournisseur')) {
+									$output .= '<td class="advanced-product-search-col --buy-price" >';
+									$TFournPriceList = self::getFournPriceList($product->id, $isSupplier ? $object->socid : 0);
+									if (!empty($TFournPriceList)) {
+										$idSelected = '';
 
-									foreach ($TFournPriceList as $TpriceInfos) {
-										$this->searchSelectArray[$TpriceInfos['id']] = array(
-											'label' => $TpriceInfos['label'],
-											'data-up' => $TpriceInfos['price'],
-											'data-fourn_qty' => $TpriceInfos['fourn_qty']
+										foreach ($TFournPriceList as $TpriceInfos) {
+											$this->searchSelectArray[$TpriceInfos['id']] = array(
+												'label' => $TpriceInfos['label'],
+												'data-up' => $TpriceInfos['price'],
+												'data-fourn_qty' => $TpriceInfos['fourn_qty']
+											);
+											if (isModEnabled('margin')) {
+												if (getDolGlobalInt('MARGIN_TYPE') == 1 && is_numeric($TpriceInfos['id'])) {
+													$idSelected = $TpriceInfos['id'];
+												} elseif (getDolGlobalString('MARGIN_TYPE') === 'pmp') {
+													$idSelected = 'pmpprice';
+												} elseif (getDolGlobalString('MARGIN_TYPE') === 'costprice') {
+													$idSelected = 'costprice';
+												}
+											} else {
+												if ($TpriceInfos['id'] == 'pmpprice' && !empty($TpriceInfos['price'])) {
+													$idSelected = 'pmpprice';
+												}
+											}
+										}
+
+										if ($isSupplier) { // Seuls les prix fournisseurs nous intéressent dans le cadre d'un document fournisseur (pas de PMP ou autre dans ce cas)
+											unset($this->searchSelectArray['pmpprice']);
+											unset($this->searchSelectArray['costprice']);
+											if (!empty($this->searchSelectArray)) {
+												if (count($this->searchSelectArray) == 1 && ($object->element !== 'supplier_proposal' || getDolGlobalString('ADVANCED_PRODUCT_SEARCH_PRESELECT_IF_ONE_FOURN_PRICE_ON_SUPPLIER_PROPOSAL'))) {
+													$idSelected = key($this->searchSelectArray);
+													$this->searchubprice = $this->searchSelectArray[$idSelected]['data-up'];
+													// Recalcul du subprice final
+													$finalSubprice = $this->searchubprice - $this->searchubprice * $reduction / 100;
+												}
+												// On insère une valeur vide, car si plusieurs prix fourn, on laisse le choix à l'utilisateur de sélectionner celui qu'il souhaite
+												$this->searchSelectArray[0] = array('data-up' => 0, 'data-fourn_qty' => 0);
+											}
+										}
+
+										$lineAttributes['productSupplierPrice']['selectedId'] = $idSelected;
+										$hookParameters = array(
+											'product' => $product,
+											'search_context' => $this->search,
+											'priceOptions' => $this->searchSelectArray
 										);
-										if (isModEnabled('margin')) {
-											if (getDolGlobalInt('MARGIN_TYPE') == 1 && is_numeric($TpriceInfos['id'])) {
-												$idSelected = $TpriceInfos['id'];
-											} elseif (getDolGlobalString('MARGIN_TYPE') === 'pmp') {
-												$idSelected = 'pmpprice';
-											} elseif (getDolGlobalString('MARGIN_TYPE') === 'costprice') {
-												$idSelected = 'costprice';
-											}
-										} else {
-											if ($TpriceInfos['id'] == 'pmpprice' && !empty($TpriceInfos['price'])) {
-												$idSelected = 'pmpprice';
-											}
-										}
-									}
+										$hookmanager->executeHooks('advancedSearchAlterLineAttributes', $hookParameters, $lineAttributes, $action);
 
-									if ($isSupplier) { // Seuls les prix fournisseurs nous intéressent dans le cadre d'un document fournisseur (pas de PMP ou autre dans ce cas)
-										unset($this->searchSelectArray['pmpprice']);
-										unset($this->searchSelectArray['costprice']);
+										$key_in_label = 0;
+										$value_as_key = 0;
+										$moreparam = 'data-product="' . $product->id . '"';
+										$translate = 0;
+										$maxlen = 0;
+										$disabled = 0;
+										$this->searchSort = $isSupplier ? 'ASC' : 'DESC';
+										$morecss = 'search-list-select';
+										$addjscombo = 0;
 										if (!empty($this->searchSelectArray)) {
-											if (count($this->searchSelectArray) == 1 && ($object->element !== 'supplier_proposal' || getDolGlobalString('ADVANCED_PRODUCT_SEARCH_PRESELECT_IF_ONE_FOURN_PRICE_ON_SUPPLIER_PROPOSAL'))) {
-												$idSelected = key($this->searchSelectArray);
-												$this->searchubprice = $this->searchSelectArray[$idSelected]['data-up'];
-												// Recalcul du subprice final
-												$finalSubprice = $this->searchubprice - $this->searchubprice * $reduction / 100;
-											}
-											// On insère une valeur vide, car si plusieurs prix fourn, on laisse le choix à l'utilisateur de sélectionner celui qu'il souhaite
-											$this->searchSelectArray[0] = array('data-up' => 0, 'data-fourn_qty' => 0);
+											$output .= $form->selectArray('prodfourprice-' . $product->id, $this->searchSelectArray, $lineAttributes['productSupplierPrice']['selectedId'], 0, $key_in_label, $value_as_key, $moreparam, $translate, $maxlen, $lineAttributes['productSupplierPrice']['disabled'], $this->searchSort, $morecss, $addjscombo);
 										}
+									} else {
+										$output .= price($product->pmp);
 									}
-
-
-									$lineAttributes = [
-										'buyingPriceAdv' => array('readonly' => false),
-										'marginRate' => array('readonly' => false),
-										'productSubPrice' => array('readonly' => false),
-										'productReduction' => array('readonly' => false),
-										'productQty' => array('readonly' => false),
-										'productSupplierPrice' => array('selectedId' => $idSelected, 'disabled' => false)
-									];
-									$hookParameters['product'] = $product;
-									$hookParameters['search_context'] = $this->search;
-									$hookParameters['priceOptions'] = $this->searchSelectArray;
-									$hookmanager->executeHooks('advancedSearchAlterLineAttributes', $hookParameters, $lineAttributes, $action);
-
-
-									$key_in_label = 0;
-									$value_as_key = 0;
-									$moreparam = 'data-product="' . $product->id . '"';
-									$translate = 0;
-									$maxlen = 0;
-									$disabled = 0;
-									$this->searchSort = $isSupplier ? 'ASC' : 'DESC';
-									$morecss = 'search-list-select';
-									$addjscombo = 0;
-									if (!empty($this->searchSelectArray)) {
-										$output .= $form->selectArray('prodfourprice-' . $product->id, $this->searchSelectArray, $lineAttributes['productSupplierPrice']['selectedId'], 0, $key_in_label, $value_as_key, $moreparam, $translate, $maxlen, $lineAttributes['productSupplierPrice']['disabled'], $this->searchSort, $morecss, $addjscombo);
-									}
-//						$output.= '</div>';
-								} else {
-									$output .= price($product->pmp);
+									$output .= '<br/>';
+									$output .= '<input id="buying_price_adv" '.($lineAttributes['buyingPriceAdv']['readonly'] ? 'readonly="readonly"' : '').' type="number" step="any" min="0" maxlength="8" size="3" class="flat maxwidth75 right hideobject buying_price_adv on-update-calc-buyingprice" name="buying_price_adv_' . $product->id . '" value="0" data-product="' . $product->id . '">';
+									$output .= '</td>';
 								}
-								$output .= '<br/>';
-								$output .= '<input id="buying_price_adv" '.($lineAttributes['buyingPriceAdv']['readonly'] ? 'readonly="readonly"' : '').' type="number" step="any" min="0" maxlength="8" size="3" class="flat maxwidth75 right hideobject buying_price_adv on-update-calc-buyingprice" name="buying_price_adv_' . $product->id . '" value="0" data-product="' . $product->id . '">';
-								$output .= '</td>';
-							}
 
 							//Taux de marque
 							$tauxmarque = 0;
