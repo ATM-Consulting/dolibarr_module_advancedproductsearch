@@ -427,10 +427,10 @@ class AdvancedProductSearch
 		if (getDolGlobalString('PRODUIT_ATTRIBUTES_HIDECHILD')) {
 			if (getDolGlobalString('PRODUIT_ATTRIBUTES_HIDECHILD_BUT_ALLOW_SEARCH_IN_EAN13')) {
 				if (strlen((string) $this->search['sall']) != 13) {
-					$this->searchSql .= " AND NOT EXISTS (SELECT pac.rowid FROM ".MAIN_DB_PREFIX."product_attribute_combination as pac WHERE pac.fk_product_child = p.rowid)";
+					$this->searchSql .= " AND NOT EXISTS (SELECT pac.rowid FROM ".$db->prefix()."product_attribute_combination as pac WHERE pac.fk_product_child = p.rowid)";
 				}
 			} else {
-				$this->searchSql .= " AND NOT EXISTS (SELECT pac.rowid FROM ".MAIN_DB_PREFIX."product_attribute_combination as pac WHERE pac.fk_product_child = p.rowid)";
+				$this->searchSql .= " AND NOT EXISTS (SELECT pac.rowid FROM ".$db->prefix()."product_attribute_combination as pac WHERE pac.fk_product_child = p.rowid)";
 			}
 		}
 
